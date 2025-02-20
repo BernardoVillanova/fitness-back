@@ -6,8 +6,11 @@ const options = {
     info: {
       title: "API de Gestão de Treinos",
       version: "1.0.0",
-      description: "API para autenticação e gerenciamento de treinos."
-    }
+      description: "Documentação da API"
+    },
+    servers: [
+      { url: "http://localhost:3000/" } // URL do seu back-end
+    ]
   },
   apis: ["./routes/*.js"]
 };

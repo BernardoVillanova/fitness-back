@@ -12,23 +12,23 @@ const router = express.Router();
  *   post:
  *     summary: Registra um novo usuário
  *     description: Cadastra um usuário com nome, e-mail e senha.
- *     parameters:
- *       - in: body
- *         name: user
- *         description: Dados do usuário para cadastro.
- *         schema:
- *           type: object
- *           required:
- *             - name
- *             - email
- *             - password
- *           properties:
- *             name:
- *               type: string
- *             email:
- *               type: string
- *             password:
- *               type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
  *     responses:
  *       201:
  *         description: Usuário cadastrado com sucesso
@@ -54,20 +54,20 @@ router.post("/register", async (req, res) => {
  *   post:
  *     summary: Autentica um usuário
  *     description: Faz login e retorna um token JWT.
- *     parameters:
- *       - in: body
- *         name: credentials
- *         description: Credenciais do usuário.
- *         schema:
- *           type: object
- *           required:
- *             - email
- *             - password
- *           properties:
- *             email:
- *               type: string
- *             password:
- *               type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Login bem-sucedido
