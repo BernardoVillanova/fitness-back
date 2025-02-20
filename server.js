@@ -12,12 +12,25 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  tls: false
-}).then(() => console.log("Conectado ao MongoDB!"))
-  .catch(err => console.error("Erro ao conectar ao MongoDB:", err));
+const conectarDB = async () => {
+  try {
+    console.log("Conectando ao MongoDB Atlas...", process.env.MONGO_URI);
+
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000, // Tempo máximo para tentar conectar
+      tls: true, // Força a conexão segura
+      retryWrites: true,
+      w: "majority"
+    });
+
+    console.log("✅ Conectado ao MongoDB Atlas!");
+  } catch (err) {
+    console.error("❌ Erro ao conectar ao MongoDB:", err);
+    process.exit(1);
+  }
+};
+
+conectarDB();
 
 app.use("/api/auth", authRoutes);  // Rota de autenticação
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs)); // Documentação Swagger
