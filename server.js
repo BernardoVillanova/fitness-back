@@ -1,38 +1,25 @@
 const express = require("express");
-const cors = require("cors");
-const mongoose = require("mongoose");
-require("dotenv").config();
-
-const swaggerUi = require("swagger-ui-express");
+const dotenv = require("dotenv");
+const connectDB = require("./config/db");
 const swaggerDocs = require("./docs/swagger");
-
 const authRoutes = require("./routes/auth");
+const instructorRoutes = require("./routes/instructors");
+const swaggerUi = require("swagger-ui-express");
+
+dotenv.config();
 
 const app = express();
-app.use(cors());
+
 app.use(express.json());
 
-const conectarDB = async () => {
-  try {
-    console.log("Conectando ao MongoDB Atlas...", process.env.MONGO_URI);
+connectDB();
 
-    await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 5000, // Tempo máximo para tentar conectar
-      tls: true, // Força a conexão segura
-      retryWrites: true,
-      w: "majority"
-    });
+app.use("/api/auth", authRoutes);
+app.use("/api/instructors", instructorRoutes);
 
-    console.log("✅ Conectado ao MongoDB Atlas!");
-  } catch (err) {
-    console.error("❌ Erro ao conectar ao MongoDB:", err);
-    process.exit(1);
-  }
-};
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-conectarDB();
-
-app.use("/api/auth", authRoutes);  // Rota de autenticação
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs)); // Documentação Swagger
-
-app.listen(3000, () => console.log("API rodando na porta 3000"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});
