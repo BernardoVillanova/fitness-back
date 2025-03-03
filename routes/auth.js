@@ -1,7 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const User = require("../models/user.js");
+const User = require("../models/user");
 require("dotenv").config();
 
 const router = express.Router();
@@ -10,8 +10,8 @@ const router = express.Router();
  * @swagger
  * /api/auth/register:
  *   post:
- *     summary: Registra um novo usuário
- *     description: Cadastra um usuário com nome, e-mail e senha.
+ *     summary: Registra um novo usuário.
+ *     description: Cadastra um usuário com nome, e-mail, senha e papel (aluno ou personal).
  *     requestBody:
  *       required: true
  *       content:
@@ -22,6 +22,7 @@ const router = express.Router();
  *               - name
  *               - email
  *               - password
+ *               - role
  *             properties:
  *               name:
  *                 type: string
@@ -29,30 +30,39 @@ const router = express.Router();
  *                 type: string
  *               password:
  *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [aluno, personal]
  *     responses:
  *       201:
- *         description: Usuário cadastrado com sucesso
+ *         description: Usuário registrado com sucesso.
  *       400:
- *         description: Usuário já existe
+ *         description: E-mail já cadastrado.
+ *       500:
+ *         description: Erro ao registrar usuário.
  */
 router.post("/register", async (req, res) => {
-  const { name, email, password } = req.body;
-  
-  let user = await User.findOne({ email });
-  if (user) return res.status(400).json({ message: "Usuário já existe" });
+  const { name, email, password, role } = req.body;
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-  user = new User({ name, email, password: hashedPassword });
-  await user.save();
+  try {
+    let user = await User.findOne({ email });
+    if (user) return res.status(400).json({ message: "Usuário já existe." });
 
-  res.status(201).json({ message: "Usuário cadastrado com sucesso!" });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user = new User({ name, email, password: hashedPassword, role });
+    await user.save();
+
+    res.status(201).json({ message: "Usuário registrado com sucesso!" });
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao registrar usuário." });
+  }
 });
 
 /**
  * @swagger
  * /api/auth/login:
  *   post:
- *     summary: Autentica um usuário
+ *     summary: Autentica um usuário.
  *     description: Faz login e retorna um token JWT.
  *     requestBody:
  *       required: true
@@ -70,20 +80,38 @@ router.post("/register", async (req, res) => {
  *                 type: string
  *     responses:
  *       200:
- *         description: Login bem-sucedido
+ *         description: Login bem-sucedido.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
  *       400:
- *         description: Credenciais inválidas
+ *         description: Credenciais inválidas.
+ *       500:
+ *         description: Erro ao realizar login.
  */
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
-  const user = await User.findOne({ email });
-  
-  if (!user || !(await bcrypt.compare(password, user.password))) {
-    return res.status(400).json({ message: "Credenciais inválidas" });
-  }
 
-  const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "1h" });
-  res.json({ token });
+  try {
+    const user = await User.findOne({ email });
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(400).json({ message: "Credenciais inválidas." });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.status(200).json({ token });
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao realizar login." });
+  }
 });
 
 module.exports = router;
