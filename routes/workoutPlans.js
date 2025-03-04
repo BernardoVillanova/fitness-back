@@ -4,7 +4,7 @@ const { createWorkoutPlan, getWorkoutPlans } = require("../controllers/workoutPl
 
 /**
  * @swagger
- * /api/workout-plans:
+ * /api/workout/workout-plans:
  *   post:
  *     summary: Cria uma nova ficha de treino.
  *     description: Permite que um instrutor crie uma ficha de treino com divisões e exercícios.
@@ -60,11 +60,11 @@ const { createWorkoutPlan, getWorkoutPlans } = require("../controllers/workoutPl
  *       500:
  *         description: Erro ao criar ficha de treino.
  */
-router.post("/", createWorkoutPlan);
+router.post("/workout-plans", createWorkoutPlan);
 
 /**
  * @swagger
- * /api/workout-plans:
+ * /api/workout/workout-plans:
  *   get:
  *     summary: Lista todas as fichas de treino.
  *     description: Retorna todas as fichas de treino cadastradas.
@@ -107,7 +107,7 @@ router.post("/", createWorkoutPlan);
  *       500:
  *         description: Erro ao buscar fichas de treino.
  */
-router.get("/", getWorkoutPlans);
+router.get("/workout-plans", getWorkoutPlans);
 
 /**
  * @swagger
@@ -141,6 +141,6 @@ router.get("/", getWorkoutPlans);
  *       500:
  *         description: Erro ao atribuir ficha de treino.
  */
-router.put("/:studentId/assign-workout-plan", assignWorkoutPlanToStudent);
+// router.put("/:studentId/assign-workout-plan", assignWorkoutPlanToStudent);
 
 module.exports = router;
