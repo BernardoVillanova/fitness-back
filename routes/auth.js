@@ -45,15 +45,33 @@ router.post("/register", async (req, res) => {
   const { name, email, password, role } = req.body;
 
   try {
-    let user = await User.findOne({ email });
-    if (user) return res.status(400).json({ message: "Usuário já existe." });
+    console.log("Dados recebidos:", req.body);
+
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({ message: "Todos os campos são obrigatórios." });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email já registrado." });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    user = new User({ name, email, password: hashedPassword, role });
-    await user.save();
+
+    const newUser = new User({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+    });
+
+    await newUser.save();
+
+    console.log("Usuário registrado:", newUser);
 
     res.status(201).json({ message: "Usuário registrado com sucesso!" });
   } catch (error) {
+    console.error("Erro ao registrar usuário:", error);
     res.status(500).json({ message: "Erro ao registrar usuário." });
   }
 });
@@ -104,7 +122,7 @@ router.post("/login", async (req, res) => {
 
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || "fallback-secret",
       { expiresIn: "1h" }
     );
 

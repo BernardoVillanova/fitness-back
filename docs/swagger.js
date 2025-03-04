@@ -9,10 +9,10 @@ const options = {
       description: "Documentação da API para gestão de treinos e usuários.",
     },
     servers: [
-      { url: "http://localhost:3000/" }, // URL do seu back-end
+      { url: "http://localhost:3000/" },
     ],
   },
-  apis: ["./routes/*.js"], // Arquivos onde as rotas estão documentadas
+  apis: ["./routes/*.js"],
 };
 
 module.exports = swaggerJsDoc(options);

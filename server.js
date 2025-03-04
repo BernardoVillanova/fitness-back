@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const swaggerDocs = require("./docs/swagger");
@@ -10,14 +11,21 @@ dotenv.config();
 
 const app = express();
 
+// Middleware
 app.use(express.json());
+
+app.use(
+  cors({
+    origin: "http://localhost",
+  })
+);
 
 connectDB();
 
 app.use("/api/auth", authRoutes);
 app.use("/api/instructors", instructorRoutes);
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
