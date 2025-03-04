@@ -5,6 +5,7 @@ const connectDB = require("./config/db");
 const swaggerDocs = require("./docs/swagger");
 const authRoutes = require("./routes/auth");
 const instructorRoutes = require("./routes/instructors");
+const workoutRoutes = require("./routes/workoutPlans");
 const swaggerUi = require("swagger-ui-express");
 
 dotenv.config();
@@ -24,6 +25,7 @@ connectDB();
 
 app.use("/api/auth", authRoutes);
 app.use("/api/instructors", instructorRoutes);
+app.use("/api/workout", workoutRoutes);
 
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
