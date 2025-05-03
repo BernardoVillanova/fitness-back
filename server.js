@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const swaggerDocs = require("./docs/swagger");
+const  studentsRoutes = require("./routes/students")
 const authRoutes = require("./routes/auth");
 const instructorRoutes = require("./routes/instructors");
 const workoutRoutes = require("./routes/workoutPlans");
@@ -24,6 +25,7 @@ connectDB();
 app.use("/api/auth", authRoutes);
 app.use("/api/instructors", instructorRoutes);
 app.use("/api/workout", workoutRoutes);
+app.use("/api/students", studentsRoutes);
 
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 

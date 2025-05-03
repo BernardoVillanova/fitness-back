@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
+const Student = require("../models/student"); // Novo: para criar aluno automaticamente
 require("dotenv").config();
 
 const router = express.Router();
@@ -10,8 +11,8 @@ const router = express.Router();
  * @swagger
  * /api/auth/register:
  *   post:
- *     summary: Registra um novo usuário.
- *     description: Cadastra um usuário com nome, e-mail, senha e papel (aluno ou personal).
+ *     summary: Registra um novo usuário (aluno ou personal).
+ *     description: Cadastra um usuário com CPF, nome, e-mail, senha, telefone, data de nascimento e papel.
  *     requestBody:
  *       required: true
  *       content:
@@ -20,54 +21,89 @@ const router = express.Router();
  *             type: object
  *             required:
  *               - name
+ *               - cpf
  *               - email
  *               - password
+ *               - phone
+ *               - birthDate
  *               - role
  *             properties:
  *               name:
+ *                 type: string
+ *               cpf:
  *                 type: string
  *               email:
  *                 type: string
  *               password:
  *                 type: string
+ *               phone:
+ *                 type: string
+ *               birthDate:
+ *                 type: string
+ *                 format: date
  *               role:
  *                 type: string
- *                 enum: [aluno, personal]
+ *                 enum: ["aluno", "personal"]
  *     responses:
  *       201:
  *         description: Usuário registrado com sucesso.
  *       400:
- *         description: E-mail já cadastrado.
+ *         description: E-mail ou CPF já cadastrado.
  *       500:
  *         description: Erro ao registrar usuário.
  */
 router.post("/register", async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, cpf, email, password, phone, birthDate, role } = req.body;
 
   try {
-    console.log("Dados recebidos:", req.body);
-
-    if (!name || !email || !password || !role) {
+    if (!name || !cpf || !email || !password || !phone || !birthDate || !role) {
       return res.status(400).json({ message: "Todos os campos são obrigatórios." });
     }
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "Email já registrado." });
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+      return res.status(400).json({ message: "E-mail já registrado." });
+    }
+
+    const existingCpf = await User.findOne({ cpf });
+    if (existingCpf) {
+      return res.status(400).json({ message: "CPF já registrado." });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
       name,
+      cpf,
       email,
       password: hashedPassword,
+      phone,
+      birthDate,
       role,
     });
 
     await newUser.save();
 
-    console.log("Usuário registrado:", newUser);
+    // Se for aluno, criar perfil de aluno automaticamente
+    if (role === "student") {
+      const newStudent = new Student({
+        userId: newUser._id,
+        preferences: {
+          trainingDays: [],
+          preferredTime: "",
+          notifications: true
+        },
+        healthRestrictions: {
+          injuries: [],
+          chronicConditions: [],
+          medications: [],
+          notes: ""
+        },
+        status: "active"
+      });
+
+      await newStudent.save();
+    }
 
     res.status(201).json({ message: "Usuário registrado com sucesso!" });
   } catch (error) {
