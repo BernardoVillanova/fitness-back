@@ -7,11 +7,11 @@ const ProgressLogSchema = new mongoose.Schema({
     chest: Number,
     waist: Number,
     hips: Number,
-    thighs: Number, // Adicione mais medidas conforme necessário
-    arms: Number,
+    thighs: Number,
+    arms: Number
   },
-  bodyFatPercentage: Number, // Opcional, se relevante
-  notes: String, // Observações do aluno ou instrutor
+  bodyFatPercentage: Number,
+  notes: String
 });
 
 const WorkoutHistorySchema = new mongoose.Schema({
@@ -21,16 +21,16 @@ const WorkoutHistorySchema = new mongoose.Schema({
     {
       exerciseId: { type: mongoose.Schema.Types.ObjectId, ref: "Exercise" },
       sets: Number,
-      reps: [Number], // Ex.: [10, 8, 12] para 3 séries
+      reps: [Number],
       weightUsed: Number,
-      notes: String,
-    },
+      notes: String
+    }
   ],
   status: { 
     type: String, 
     enum: ["completed", "partial", "missed"], 
     default: "missed" 
-  }, // Status do treino
+  }
 });
 
 const StudentSchema = new mongoose.Schema({
@@ -38,7 +38,7 @@ const StudentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: "User", 
     required: true, 
-    unique: true // Garante que um usuário só seja aluno uma vez
+    unique: true 
   },
   instructorId: { 
     type: mongoose.Schema.Types.ObjectId, 
@@ -48,9 +48,31 @@ const StudentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: "WorkoutPlan" 
   },
+  personalInfo: {
+    weight: Number,
+    height: Number,
+    trainingExperience: String,
+    location: {
+      city: String,
+      neighborhood: String,
+      preferredTrainingType: String
+    },
+    availability: {
+      trainingDays: [String],
+      preferredTime: String
+    }
+  },
+  healthRestrictions: {
+    injuries: [String],
+    chronicConditions: [String],
+    medications: [String],
+    medicalAuthorization: Boolean,
+    doctorContact: String,
+    notes: String
+  },
   goals: [
     {
-      description: String, // Ex.: "Perder 5kg em 3 meses"
+      description: String,
       startDate: Date,
       endDate: Date,
       targetValue: Number,
@@ -59,23 +81,19 @@ const StudentSchema = new mongoose.Schema({
         type: String, 
         enum: ["in-progress", "achieved", "canceled"] 
       }
-    },
+    }
   ],
-  progressHistory: [ProgressLogSchema], // Histórico de medidas
-  workoutHistory: [WorkoutHistorySchema], // Histórico de treinos
+  progressHistory: [ProgressLogSchema],
+  workoutHistory: [WorkoutHistorySchema],
   preferences: {
-    trainingDays: [String], // Ex.: ["segunda", "quarta", "sexta"]
-    preferredTime: String, // Ex.: "manhã"
-    notifications: { 
-      type: Boolean, 
-      default: true 
-    }, // Receber lembretes
+    trainingDays: [String],
+    preferredTime: String
   },
   status: { 
     type: String, 
     enum: ["active", "paused", "inactive"], 
     default: "active" 
-  }, // Status da relação aluno-instrutor
+  }
 });
 
 module.exports = mongoose.model("Student", StudentSchema);

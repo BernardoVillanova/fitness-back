@@ -18,7 +18,6 @@ exports.createStudent = async (req, res) => {
       preferences: {
         trainingDays: preferences?.trainingDays || [],
         preferredTime: preferences?.preferredTime || "",
-        notifications: preferences?.notifications !== undefined ? preferences.notifications : true,
       },
       status: status || "active",
     });
@@ -30,30 +29,13 @@ exports.createStudent = async (req, res) => {
   }
 };
 
-// 2. Listar Todos os Alunos
-exports.getAllStudents = async (req, res) => {
-  try {
-    const students = await Student.find()
-      .populate("userId", "email name") // Exemplo: incluir dados do usuário
-      .select("-__v"); // Ocultar versão do documento
-
-    if (!students.length) {
-      return res.status(404).json({ message: "Nenhum aluno encontrado." });
-    }
-
-    res.status(200).json(students);
-  } catch (error) {
-    res.status(500).json({ message: "Erro ao buscar alunos.", error: error.message });
-  }
-};
-
-// 3. Buscar Aluno por ID
+// 2. Buscar Aluno por ID
 exports.getStudentById = async (req, res) => {
   try {
     const { studentId } = req.params;
 
     const student = await Student.findById(studentId)
-      .populate("userId", "email name")
+      .populate("userId", "email name cpf phone birthDate")
       .populate("instructorId", "name")
       .populate("currentWorkoutPlanId");
 
@@ -67,7 +49,44 @@ exports.getStudentById = async (req, res) => {
   }
 };
 
-// 4. Atualizar Aluno
+// 3. Buscar Alunos por InstructorId
+exports.getStudentsByInstructorId = async (req, res) => {
+  try {
+    const { instructorId } = req.params;
+
+    const students = await Student.find({ instructorId })
+      .populate("userId", "email name cpf phone birthDate")
+      .populate("instructorId", "name")
+      .select("-__v");
+
+    if (!students.length) {
+      return res.status(404).json({ message: "Nenhum aluno encontrado para este instrutor." });
+    }
+
+    res.status(200).json(students);
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao buscar alunos.", error: error.message });
+  }
+};
+
+// 4. Buscar Alunos sem InstructorId
+exports.getStudentsWithoutInstructor = async (req, res) => {
+  try {
+    const students = await Student.find({ instructorId: null })
+      .populate("userId", "email name cpf phone birthDate")
+      .select("-__v");
+
+    if (!students.length) {
+      return res.status(404).json({ message: "Nenhum aluno sem instrutor atribuído." });
+    }
+
+    res.status(200).json(students);
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao buscar alunos.", error: error.message });
+  }
+};
+
+// 5. Atualizar Aluno
 exports.updateStudent = async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -80,7 +99,6 @@ exports.updateStudent = async (req, res) => {
         preferences: {
           trainingDays: preferences?.trainingDays || [],
           preferredTime: preferences?.preferredTime || "",
-          notifications: preferences?.notifications !== undefined ? preferences.notifications : true,
         },
         status,
       },
@@ -97,7 +115,7 @@ exports.updateStudent = async (req, res) => {
   }
 };
 
-// 5. Adicionar Registro de Progresso
+// 6. Adicionar Registro de Progresso
 exports.addProgressLog = async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -126,7 +144,7 @@ exports.addProgressLog = async (req, res) => {
   }
 };
 
-// 6. Atualizar Status de uma Meta
+// 7. Atualizar Status de uma Meta
 exports.updateGoalStatus = async (req, res) => {
   try {
     const { studentId, goalId } = req.params;

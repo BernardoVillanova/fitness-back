@@ -2,10 +2,10 @@ const express = require("express");
 const router = express.Router();
 const { 
   createStudent, 
-  getAllStudents, 
   getStudentById, 
+  getStudentsByInstructorId,
+  getStudentsWithoutInstructor,
   updateStudent, 
-  deleteStudent,
   addProgressLog,
   updateGoalStatus
 } = require("../controllers/studentController");
@@ -39,8 +39,6 @@ const {
  *                     items: { type: string }
  *                   preferredTime:
  *                     type: string
- *                   notifications:
- *                     type: boolean
  *               status:
  *                 type: string
  *                 enum: ["active", "paused", "inactive"]
@@ -54,49 +52,6 @@ const {
  *         description: Erro ao criar aluno.
  */
 router.post("/", createStudent);
-
-/**
- * @swagger
- * /api/students:
- *   get:
- *     summary: Lista todos os alunos.
- *     description: Retorna uma lista de todos os alunos cadastrados.
- *     responses:
- *       200:
- *         description: Alunos listados com sucesso.
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   _id:
- *                     type: string
- *                   userId:
- *                     type: string
- *                   instructorId:
- *                     type: string
- *                   preferences:
- *                     type: object
- *                     properties:
- *                       trainingDays:
- *                         type: array
- *                         items: { type: string }
- *                       preferredTime:
- *                         type: string
- *                       notifications:
- *                         type: boolean
- *                   status:
- *                     type: string
- *                   createdAt:
- *                     type: string
- *       404:
- *         description: Nenhum aluno encontrado.
- *       500:
- *         description: Erro ao buscar alunos.
- */
-router.get("/", getAllStudents);
 
 /**
  * @swagger
@@ -122,11 +77,67 @@ router.get("/", getAllStudents);
  *                 _id:
  *                   type: string
  *                 userId:
- *                   type: string
+ *                   type: object
+ *                   properties:
+ *                     email:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     cpf:
+ *                       type: string
+ *                     phone:
+ *                       type: string
+ *                     birthDate:
+ *                       type: string
  *                 instructorId:
- *                   type: string
- *                 currentWorkoutPlanId:
- *                   type: string
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                 personalInfo:
+ *                   type: object
+ *                   properties:
+ *                     weight:
+ *                       type: number
+ *                     height:
+ *                       type: number
+ *                     trainingExperience:
+ *                       type: string
+ *                     location:
+ *                       type: object
+ *                       properties:
+ *                         city:
+ *                           type: string
+ *                         neighborhood:
+ *                           type: string
+ *                         preferredTrainingType:
+ *                           type: string
+ *                     availability:
+ *                       type: object
+ *                       properties:
+ *                         trainingDays:
+ *                           type: array
+ *                           items: { type: string }
+ *                         preferredTime:
+ *                           type: string
+ *                 healthRestrictions:
+ *                   type: object
+ *                   properties:
+ *                     injuries:
+ *                       type: array
+ *                       items: { type: string }
+ *                     chronicConditions:
+ *                       type: array
+ *                       items: { type: string }
+ *                     medications:
+ *                       type: array
+ *                       items: { type: string }
+ *                     medicalAuthorization:
+ *                       type: boolean
+ *                     doctorContact:
+ *                       type: string
+ *                     notes:
+ *                       type: string
  *                 goals:
  *                   type: array
  *                   items:
@@ -205,8 +216,6 @@ router.get("/", getAllStudents);
  *                       items: { type: string }
  *                     preferredTime:
  *                       type: string
- *                     notifications:
- *                       type: boolean
  *                 status:
  *                   type: string
  *       404:
@@ -215,6 +224,113 @@ router.get("/", getAllStudents);
  *         description: Erro ao buscar aluno.
  */
 router.get("/:studentId", getStudentById);
+
+/**
+ * @swagger
+ * /api/students/instructor/{instructorId}:
+ *   get:
+ *     summary: Lista todos os alunos de um instrutor específico.
+ *     description: Retorna uma lista de todos os alunos vinculados a um instrutor.
+ *     parameters:
+ *       - in: path
+ *         name: instructorId
+ *         required: true
+ *         description: ID do instrutor.
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Alunos listados com sucesso.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                   userId:
+ *                     type: object
+ *                     properties:
+ *                       email:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       cpf:
+ *                         type: string
+ *                       phone:
+ *                         type: string
+ *                       birthDate:
+ *                         type: string
+ *                   preferences:
+ *                     type: object
+ *                     properties:
+ *                       trainingDays:
+ *                         type: array
+ *                         items: { type: string }
+ *                       preferredTime:
+ *                         type: string
+ *                   status:
+ *                     type: string
+ *                   createdAt:
+ *                     type: string
+ *       404:
+ *         description: Nenhum aluno encontrado para este instrutor.
+ *       500:
+ *         description: Erro ao buscar alunos.
+ */
+router.get("/instructor/:instructorId", getStudentsByInstructorId);
+
+/**
+ * @swagger
+ * /api/students/unassigned:
+ *   get:
+ *     summary: Lista todos os alunos sem instrutor atribuído.
+ *     description: Retorna uma lista de todos os alunos que não têm instrutor vinculado.
+ *     responses:
+ *       200:
+ *         description: Alunos listados com sucesso.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                   userId:
+ *                     type: object
+ *                     properties:
+ *                       email:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       cpf:
+ *                         type: string
+ *                       phone:
+ *                         type: string
+ *                       birthDate:
+ *                         type: string
+ *                   preferences:
+ *                     type: object
+ *                     properties:
+ *                       trainingDays:
+ *                         type: array
+ *                         items: { type: string }
+ *                       preferredTime:
+ *                         type: string
+ *                   status:
+ *                     type: string
+ *                   createdAt:
+ *                     type: string
+ *       404:
+ *         description: Nenhum aluno sem instrutor encontrado.
+ *       500:
+ *         description: Erro ao buscar alunos.
+ */
+router.get("/unassigned", getStudentsWithoutInstructor);
 
 /**
  * @swagger
@@ -246,8 +362,6 @@ router.get("/:studentId", getStudentById);
  *                     items: { type: string }
  *                   preferredTime:
  *                     type: string
- *                   notifications:
- *                     type: boolean
  *               status:
  *                 type: string
  *                 enum: ["active", "paused", "inactive"]
