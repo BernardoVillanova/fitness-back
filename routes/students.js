@@ -14,8 +14,8 @@ const {
  * @swagger
  * /api/students:
  *   post:
- *     summary: Cria um novo aluno.
- *     description: Permite que um instrutor crie um aluno e vincule ao usuário.
+ *     summary: Cria um novo aluno com informações detalhadas.
+ *     description: Permite criar um aluno com dados completos (informações pessoais, restrições de saúde, metas, preferências).
  *     requestBody:
  *       required: true
  *       content:
@@ -24,6 +24,7 @@ const {
  *             type: object
  *             required:
  *               - userId
+ *               - personalInfo
  *             properties:
  *               userId:
  *                 type: string
@@ -31,14 +32,88 @@ const {
  *               instructorId:
  *                 type: string
  *                 description: ID do instrutor responsável (opcional).
+ *               personalInfo:
+ *                 type: object
+ *                 required: ["weight", "height", "availability"]
+ *                 properties:
+ *                   weight:
+ *                     type: number
+ *                     description: Peso em kg
+ *                   height:
+ *                     type: number
+ *                     description: Altura em cm
+ *                   trainingExperience:
+ *                     type: string
+ *                     enum: ["sedentário", "iniciante", "intermediário", "avançado"]
+ *                   location:
+ *                     type: object
+ *                     properties:
+ *                       city:
+ *                         type: string
+ *                       neighborhood:
+ *                         type: string
+ *                       preferredTrainingType:
+ *                         type: string
+ *                         enum: ["presencial", "online", "ambos"]
+ *                   availability:
+ *                     type: object
+ *                     required: ["trainingDays", "preferredTime"]
+ *                     properties:
+ *                       trainingDays:
+ *                         type: array
+ *                         items: { type: string }
+ *                         enum: ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"]
+ *                       preferredTime:
+ *                         type: string
+ *                         enum: ["manhã", "tarde", "noite"]
+ *               healthRestrictions:
+ *                 type: object
+ *                 properties:
+ *                   injuries:
+ *                     type: array
+ *                     items: { type: string }
+ *                   chronicConditions:
+ *                     type: array
+ *                     items: { type: string }
+ *                   medications:
+ *                     type: array
+ *                     items: { type: string }
+ *                   medicalAuthorization:
+ *                     type: boolean
+ *                   doctorContact:
+ *                     type: string
+ *                   notes:
+ *                     type: string
+ *               goals:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     description:
+ *                       type: string
+ *                     startDate:
+ *                       type: string
+ *                       format: date
+ *                     endDate:
+ *                       type: string
+ *                       format: date
+ *                     targetValue:
+ *                       type: number
+ *                     currentValue:
+ *                       type: number
+ *                     status:
+ *                       type: string
+ *                       enum: ["in-progress", "achieved", "canceled"]
  *               preferences:
  *                 type: object
  *                 properties:
  *                   trainingDays:
  *                     type: array
  *                     items: { type: string }
+ *                     enum: ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"]
  *                   preferredTime:
  *                     type: string
+ *                     enum: ["manhã", "tarde", "noite"]
  *               status:
  *                 type: string
  *                 enum: ["active", "paused", "inactive"]
@@ -46,6 +121,15 @@ const {
  *     responses:
  *       201:
  *         description: Aluno criado com sucesso.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 student:
+ *                   $ref: '#/components/schemas/Student'
  *       400:
  *         description: Dados inválidos.
  *       500:

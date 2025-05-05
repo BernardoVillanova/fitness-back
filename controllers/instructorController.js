@@ -1,6 +1,6 @@
 const WorkoutPlan = require("../models/workoutPlan");
+const Instructor = require("../models/instructor");
 
-// Função para criar uma ficha de treino
 exports.createWorkoutPlan = async (req, res) => {
   const { studentId } = req.params;
   const { week, exercises } = req.body;
@@ -8,14 +8,12 @@ exports.createWorkoutPlan = async (req, res) => {
   try {
     const workoutPlan = new WorkoutPlan({ studentId, week, exercises });
     await workoutPlan.save();
-
     res.status(201).json({ message: "Ficha de treino criada com sucesso!" });
   } catch (error) {
     res.status(500).json({ message: "Erro ao criar ficha de treino." });
   }
 };
 
-// Função para listar fichas de treino de um aluno
 exports.getWorkoutPlans = async (req, res) => {
   const { studentId } = req.params;
 
@@ -24,5 +22,40 @@ exports.getWorkoutPlans = async (req, res) => {
     res.status(200).json(workoutPlans);
   } catch (error) {
     res.status(500).json({ message: "Erro ao buscar fichas de treino." });
+  }
+};
+
+exports.getInstructors = async (req, res) => {
+  try {
+    const { name, specialty, location } = req.query;
+    const filters = {};
+
+    // Filtrar por nome (busca parcial, case-insensitive)
+    if (name) {
+      filters["userId.name"] = { $regex: name, $options: "i" };
+    }
+
+    // Filtrar por especialidade
+    if (specialty) {
+      filters.specialty = { $regex: specialty, $options: "i" };
+    }
+
+    // Filtrar por localização (ex.: cidade ou bairro)
+    if (location) {
+      filters["personalInfo.location.city"] = { $regex: location, $options: "i" };
+      filters["personalInfo.location.neighborhood"] = { $regex: location, $options: "i" };
+    }
+
+    const instructors = await Instructor.find(filters)
+      .populate("userId", "name email phone")
+      .select("-__v");
+
+    if (!instructors.length) {
+      return res.status(404).json({ message: "Nenhum instrutor encontrado." });
+    }
+
+    res.status(200).json(instructors);
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao buscar instrutores." });
   }
 };
