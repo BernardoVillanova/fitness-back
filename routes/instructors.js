@@ -1,6 +1,41 @@
 const express = require("express");
 const router = express.Router();
-const { createWorkoutPlan, getWorkoutPlans } = require("../controllers/instructorController");
+const { createWorkoutPlan, getWorkoutPlans, getInstructors } = require("../controllers/instructorController");
+
+/**
+ * @swagger
+ * /api/instructors:
+ *   get:
+ *     summary: Lista instrutores com filtros opcionais.
+ *     description: Retorna instrutores com base em critérios como nome, especialidade ou localização.
+ *     parameters:
+ *       - in: query
+ *         name: name
+ *         type: string
+ *         description: Busca por nome do instrutor (ex.: "Carlos").
+ *       - in: query
+ *         name: specialty
+ *         type: string
+ *         description: Filtra por especialidade (ex.: "Musculação").
+ *       - in: query
+ *         name: location
+ *         type: string
+ *         description: Filtra por cidade ou bairro (ex.: "São Paulo").
+ *     responses:
+ *       200:
+ *         description: Instrutores listados com sucesso.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Instructor'
+ *       404:
+ *         description: Nenhum instrutor encontrado.
+ *       500:
+ *         description: Erro ao buscar instrutores.
+ */
+router.get("/", getInstructors);
 
 /**
  * @swagger
