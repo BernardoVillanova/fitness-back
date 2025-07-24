@@ -14,6 +14,29 @@ exports.createWorkoutPlan = async (req, res) => {
   }
 };
 
+exports.createInstructor = async (req, res) => {
+  try {
+    const { userId, certifications, specialties } = req.body;
+
+    // Verifica se o usuário já é instrutor
+    const existingInstructor = await Instructor.findOne({ userId });
+    if (existingInstructor) {
+      return res.status(400).json({ message: "Usuário já é instrutor." });
+    }
+
+    const newInstructor = new Instructor({
+      userId,
+      certifications: certifications || [],
+      specialties: specialties || [],
+    });
+
+    await newInstructor.save();
+    res.status(201).json({ message: "Instrutor criado com sucesso.", instructor: newInstructor });
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao criar instrutor.", error: error.message });
+  }
+};
+
 exports.getWorkoutPlans = async (req, res) => {
   const { studentId } = req.params;
 
