@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { createWorkoutPlan, getWorkoutPlans, getInstructors } = require("../controllers/instructorController");
+const { createWorkoutPlan, getWorkoutPlans, getInstructors, createInstructor } = require("../controllers/instructorController");
 
 /**
  * @swagger
@@ -36,6 +36,43 @@ const { createWorkoutPlan, getWorkoutPlans, getInstructors } = require("../contr
  *         description: Erro ao buscar instrutores.
  */
 router.get("/", getInstructors);
+
+/**
+ * @swagger
+ * /api/instructors:
+ *   post:
+ *     summary: Cria um novo instrutor.
+ *     description: Cadastra um novo instrutor com ID de usuário, certificações e especializações.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               certifications:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Lista de certificações
+ *               specialties:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Áreas de especialização
+ *     responses:
+ *       201:
+ *         description: Instrutor criado com sucesso.
+ *       400:
+ *         description: Usuário já é instrutor.
+ *       500:
+ *         description: Erro ao criar instrutor.
+ */
+router.post("/", createInstructor);
 
 /**
  * @swagger

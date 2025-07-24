@@ -26,44 +26,48 @@ const WorkoutHistorySchema = new mongoose.Schema({
       notes: String
     }
   ],
-  status: { 
-    type: String, 
-    enum: ["completed", "partial", "missed"], 
-    default: "missed" 
+  status: {
+    type: String,
+    enum: ["completed", "partial", "missed"],
+    default: "missed"
   }
 });
 
 const StudentSchema = new mongoose.Schema({
-  userId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: "User", 
-    required: true, 
-    unique: true 
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+    unique: true
   },
-  instructorId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: "Instructor" 
+  instructorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Instructor"
   },
-  currentWorkoutPlanId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: "WorkoutPlan" 
+  currentWorkoutPlanId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "WorkoutPlan"
   },
   personalInfo: {
     weight: Number,
     height: Number,
-    trainingExperience: String,
+    trainingExperience: {
+      type: String,
+      enum: ["iniciante", "intermediario", "avancado", "atleta"]
+    },
     location: {
       city: String,
       neighborhood: String,
-      preferredTrainingType: String
+      street: String,
+      number: String,
+      postalCode: String
     },
-    availability: {
-      trainingDays: [String],
-      preferredTime: String
+    preferences: {
+      trainingDays: [String],  // ["segunda", "quarta", "sexta"]
+      preferredTimes: [String] // ["07:00", "18:00"]
     }
   },
   healthRestrictions: {
-    injuries: [String],
     chronicConditions: [String],
     medications: [String],
     medicalAuthorization: Boolean,
@@ -73,26 +77,15 @@ const StudentSchema = new mongoose.Schema({
   goals: [
     {
       description: String,
-      startDate: Date,
-      endDate: Date,
-      targetValue: Number,
-      currentValue: Number,
-      status: { 
-        type: String, 
-        enum: ["in-progress", "achieved", "canceled"] 
-      }
+      targetValue: Number
     }
   ],
   progressHistory: [ProgressLogSchema],
   workoutHistory: [WorkoutHistorySchema],
-  preferences: {
-    trainingDays: [String],
-    preferredTime: String
-  },
-  status: { 
-    type: String, 
-    enum: ["active", "paused", "inactive"], 
-    default: "active" 
+  status: {
+    type: String,
+    enum: ["active", "paused", "inactive"],
+    default: "active"
   }
 });
 
