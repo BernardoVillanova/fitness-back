@@ -14,15 +14,22 @@ const EquipmentSchema = new mongoose.Schema({
 
 const GymSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  description: { type: String },
+  image: { type: String }, // Caminho da imagem no servidor
   location: {
-    address: String,
-    city: String,
-    state: String,
-    zipCode: String
+    address: { type: String, required: true },
+    city: { type: String, required: true },
+    state: { type: String, required: true },
+    zipCode: { type: String, required: true }
   },
+  phone: { type: String, required: true },
+  email: { type: String },
   equipments: [EquipmentSchema],
   instructors: [{ type: mongoose.Schema.Types.ObjectId, ref: "Instructor" }],
   students: [{ type: mongoose.Schema.Types.ObjectId, ref: "Student" }]
+}, {
+  timestamps: true, // Adiciona createdAt e updatedAt
+  collection: 'gyms' // Força o nome da coleção para 'gyms'
 });
 
-module.exports = mongoose.model("Gym", GymSchema);
+module.exports = mongoose.model("Gyms", GymSchema, 'gyms');
