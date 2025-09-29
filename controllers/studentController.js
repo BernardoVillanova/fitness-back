@@ -6,40 +6,99 @@ const User = require("../models/user");
 exports.getStudents = async (req, res) => {
   try {
     const { status, search, hasInstructor } = req.query;
-    
-    let query = {};
-    
+
+    // Build aggregation pipeline
+    const pipeline = [];
+
     // Filtro por status
     if (status && status !== 'all') {
-      query.status = status;
+      pipeline.push({ $match: { status } });
     }
-    
+
     // Filtro por instrutor
     if (hasInstructor === 'true') {
-      query.instructorId = { $ne: null };
+      pipeline.push({ $match: { instructorId: { $ne: null } } });
     } else if (hasInstructor === 'false') {
-      query.instructorId = null;
+      pipeline.push({ $match: { instructorId: null } });
     }
-    
-    // Busca de texto
+
+    // $lookup para userId
+    pipeline.push({
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "user"
+      }
+    });
+    pipeline.push({ $unwind: "$user" });
+
+    // Busca de texto nos campos do usuário
     if (search) {
-      // Precisamos buscar primeiro os usuários que correspondem à busca
-      const users = await User.find({
-        $or: [
-          { name: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } }
-        ]
+      pipeline.push({
+        $match: {
+          $or: [
+            { "user.name": { $regex: search, $options: "i" } },
+            { "user.email": { $regex: search, $options: "i" } }
+          ]
+        }
       });
-      
-      const userIds = users.map(user => user._id);
-      query.userId = { $in: userIds };
     }
 
-    const students = await Student.find(query)
-      .populate('userId', 'name email')
-      .populate('instructorId', 'name')
-      .populate('currentWorkoutPlanId', 'name');
+    // $lookup para instructorId
+    pipeline.push({
+      $lookup: {
+        from: "users",
+        localField: "instructorId",
+        foreignField: "_id",
+        as: "instructor"
+      }
+    });
+    pipeline.push({
+      $unwind: {
+        path: "$instructor",
+        preserveNullAndEmptyArrays: true
+      }
+    });
 
+    // $lookup para currentWorkoutPlanId
+    pipeline.push({
+      $lookup: {
+        from: "workoutplans",
+        localField: "currentWorkoutPlanId",
+        foreignField: "_id",
+        as: "currentWorkoutPlan"
+      }
+    });
+    pipeline.push({
+      $unwind: {
+        path: "$currentWorkoutPlan",
+        preserveNullAndEmptyArrays: true
+      }
+    });
+
+    // Project only needed fields
+    pipeline.push({
+      $project: {
+        _id: 1,
+        status: 1,
+        userId: 1,
+        instructorId: 1,
+        currentWorkoutPlanId: 1,
+        // User fields
+        "user._id": 1,
+        "user.name": 1,
+        "user.email": 1,
+        // Instructor fields
+        "instructor._id": 1,
+        "instructor.name": 1,
+        // Workout plan fields
+        "currentWorkoutPlan._id": 1,
+        "currentWorkoutPlan.name": 1
+      }
+    });
+
+    const students = await Student.aggregate(pipeline);
     res.status(200).json(students);
   } catch (error) {
     console.error('Erro ao buscar alunos:', error);
