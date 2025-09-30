@@ -1,35 +1,24 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const path = require("path");
 const connectDB = require("./config/db");
 const swaggerDocs = require("./docs/swagger");
-const studentsRoutes = require("./routes/students");
+const studentsRoutes = require("./routes/students")
 const authRoutes = require("./routes/auth");
 const instructorRoutes = require("./routes/instructors");
 const workoutRoutes = require("./routes/workoutPlans");
-const gymRoutes = require("./routes/gyms");
 const swaggerUi = require("swagger-ui-express");
 
 dotenv.config();
 
 const app = express();
 
-app.use(cors({
-  origin: 'http://localhost:5173',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
+// Middleware
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-const fs = require('fs');
-if (!fs.existsSync('uploads')) {
-  fs.mkdirSync('uploads');
-}
-
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(
+  cors()
+);
 
 connectDB();
 
@@ -37,7 +26,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/instructors", instructorRoutes);
 app.use("/api/workout", workoutRoutes);
 app.use("/api/students", studentsRoutes);
-app.use("/api/gyms", gymRoutes);
 
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
