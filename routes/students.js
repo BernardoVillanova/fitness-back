@@ -4,6 +4,7 @@ const { authenticate: authMiddleware } = require("../middleware/authMiddleware")
 const { 
   createStudent, 
   getStudentById, 
+  getStudentByUserId,
   getStudentsByInstructorId,
   getStudentsWithoutInstructor,
   getStudents,
@@ -312,6 +313,28 @@ router.post("/", createStudent);
  *         description: Erro ao buscar aluno.
  */
 router.get("/:studentId", getStudentById);
+
+/**
+ * @swagger
+ * /api/students/user/{userId}:
+ *   get:
+ *     summary: Busca um aluno pelo userId.
+ *     description: Retorna dados completos do aluno baseado no userId.
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Aluno encontrado.
+ *       404:
+ *         description: Aluno não encontrado.
+ *       500:
+ *         description: Erro ao buscar aluno.
+ */
+router.get("/user/:userId", getStudentByUserId);
 
 /**
  * @swagger

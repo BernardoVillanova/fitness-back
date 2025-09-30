@@ -206,6 +206,26 @@ exports.updateGoalStatus = async (req, res) => {
   }
 };
 
+// 8. Buscar Aluno por UserId
+exports.getStudentByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const student = await Student.findOne({ userId })
+      .populate("userId", "email name cpf phone birthDate")
+      .populate("instructorId", "name")
+      .populate("currentWorkoutPlanId");
+
+    if (!student) {
+      return res.status(404).json({ message: "Aluno não encontrado." });
+    }
+
+    res.status(200).json(student);
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao buscar aluno por userId.", error: error.message });
+  }
+};
+
 // Get all students
 exports.getStudents = async (req, res) => {
   try {
