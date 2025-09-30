@@ -12,15 +12,15 @@ const { createWorkoutPlan, getWorkoutPlans, getInstructors, createInstructor } =
  *       - in: query
  *         name: name
  *         type: string
- *         description: Busca por nome do instrutor (ex.: "Carlos").
+ *         description: 'Busca por nome do instrutor (ex.: "Carlos").'
  *       - in: query
  *         name: specialty
  *         type: string
- *         description: Filtra por especialidade (ex.: "Musculação").
+ *         description: 'Filtra por especialidade (ex.: "Musculação").'
  *       - in: query
  *         name: location
  *         type: string
- *         description: Filtra por cidade ou bairro (ex.: "São Paulo").
+ *         description: 'Filtra por cidade ou bairro (ex.: "São Paulo").'
  *     responses:
  *       200:
  *         description: Instrutores listados com sucesso.

@@ -1,50 +1,26 @@
 const express = require("express");
 const router = express.Router();
+const { authenticate: authMiddleware } = require("../middleware/authMiddleware");
 const { 
-  getStudents,
   createStudent, 
-  getStudentById,
-  updateStudent,
+  getStudentById, 
+  getStudentsByInstructorId,
+  getStudentsWithoutInstructor,
+  getStudents,
+  updateStudent, 
   deleteStudent,
   unassignInstructor,
-  addProgress
+  addProgressLog,
+  updateGoalStatus
 } = require("../controllers/studentController");
-
-// Middleware de autenticação
-const authMiddleware = require("../middleware/authMiddleware");
-
-// Rotas principais
-router.get("/", authMiddleware, getStudents);
-router.post("/", authMiddleware, createStudent);
-router.get("/:studentId", authMiddleware, getStudentById);
-router.put("/:studentId", authMiddleware, updateStudent);
-router.delete("/:studentId", authMiddleware, deleteStudent);
-router.delete("/:studentId/instructor", authMiddleware, unassignInstructor);
-router.post("/:studentId/progress", authMiddleware, addProgress);
 
 /**
  * @swagger
  * /api/students:
- *   get:
- *     summary: Lista todos os alunos com opções de filtro
- *     parameters:
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *           enum: [all, active, paused, inactive]
- *       - in: query
- *         name: search
- *         schema:
- *           type: string
- *       - in: query
- *         name: hasInstructor
- *         schema:
- *           type: string
- *           enum: [true, false]
  *   post:
- *     summary: Cria um novo aluno
+ *     summary: Cria um novo aluno com informações detalhadas.
  *     description: Permite criar um aluno com dados completos (informações pessoais, restrições de saúde, metas, preferências).
+ *     requestBody:
  *       required: true
  *       content:
  *         application/json:
