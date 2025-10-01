@@ -1,34 +1,61 @@
 const mongoose = require("mongoose");
 
+// Registro de evolução física do aluno (peso, medidas, composição corporal)
 const ProgressLogSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
-  weight: Number,
+  
+  // Peso e Composição Corporal
+  weight: { type: Number }, // kg
+  bodyFatPercentage: { type: Number }, // %
+  muscleMass: { type: Number }, // kg
+  
+  // Circunferências (cm)
   measurements: {
-    chest: Number,
-    waist: Number,
-    hips: Number,
-    thighs: Number,
-    arms: Number
+    chest: { type: Number, alias: 'peitoral' },      // Peitoral
+    waist: { type: Number, alias: 'cintura' },       // Cintura
+    abdomen: { type: Number, alias: 'abdomen' },     // Abdômen
+    hips: { type: Number, alias: 'quadril' },        // Quadril
+    rightArm: { type: Number, alias: 'bracoDireito' },   // Braço direito
+    leftArm: { type: Number, alias: 'bracoEsquerdo' },   // Braço esquerdo
+    rightThigh: { type: Number, alias: 'coxaDireita' },  // Coxa direita
+    leftThigh: { type: Number, alias: 'coxaEsquerda' },  // Coxa esquerda
+    rightCalf: { type: Number, alias: 'panturrilhaDireita' },  // Panturrilha direita
+    leftCalf: { type: Number, alias: 'panturrilhaEsquerda' }   // Panturrilha esquerda
   },
-  bodyFatPercentage: Number,
-  notes: String
+  
+  // Força (cargas máximas ou testes)
+  strengthTests: {
+    benchPress: { type: Number, alias: 'supino' },      // Supino (kg)
+    squat: { type: Number, alias: 'agachamento' },      // Agachamento (kg)
+    deadlift: { type: Number, alias: 'levantamentoTerra' }, // Levantamento Terra (kg)
+    pullUp: { type: Number, alias: 'barraFixa' },       // Barra fixa (reps)
+    plank: { type: Number, alias: 'prancha' }           // Prancha (segundos)
+  },
+  
+  // Observações e contexto
+  notes: String,
+  measuredBy: { type: String, enum: ['instrutor', 'aluno', 'nutricionista'] },
+  photoUrls: [String] // URLs de fotos de progresso
 });
 
-const WorkoutHistorySchema = new mongoose.Schema({
-  workoutPlanId: { type: mongoose.Schema.Types.ObjectId, ref: "WorkoutPlan" },
+// WorkoutSummary: Resumo estatístico dos treinos (cache de 30 dias)
+// Para histórico completo de treinos executados, usar WorkoutSession collection
+const WorkoutSummarySchema = new mongoose.Schema({
+  workoutSessionId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "WorkoutSession" 
+  }, // Referência ao treino completo
+  workoutPlanId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "WorkoutPlan" 
+  },
   date: { type: Date, default: Date.now },
-  exercisesCompleted: [
-    {
-      exerciseId: { type: mongoose.Schema.Types.ObjectId, ref: "Exercise" },
-      sets: Number,
-      reps: [Number],
-      weightUsed: Number,
-      notes: String
-    }
-  ],
+  duration: Number, // Duração em minutos
+  exercisesCompleted: Number, // Quantidade de exercícios completados
+  totalExercises: Number, // Total de exercícios no treino
   status: {
     type: String,
-    enum: ["completed", "partial", "missed"],
+    enum: ["completed", "partial", "missed", "cancelled"],
     default: "missed"
   }
 });
@@ -48,6 +75,10 @@ const StudentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "WorkoutPlan"
   },
+  workoutPlans: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "WorkoutPlan"
+  }],
   personalInfo: {
     weight: Number,
     height: Number,
@@ -77,11 +108,18 @@ const StudentSchema = new mongoose.Schema({
   goals: [
     {
       description: String,
-      targetValue: Number
+      targetValue: Number,
+      targetDate: Date,
+      achieved: { type: Boolean, default: false }
     }
   ],
+  
+  // Evolução física (peso, medidas, força)
   progressHistory: [ProgressLogSchema],
-  workoutHistory: [WorkoutHistorySchema],
+  
+  // Resumo dos últimos treinos executados (cache)
+  workoutSummary: [WorkoutSummarySchema],
+  
   status: {
     type: String,
     enum: ["active", "paused", "inactive"],
