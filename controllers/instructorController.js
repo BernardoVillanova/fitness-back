@@ -16,24 +16,103 @@ exports.createWorkoutPlan = async (req, res) => {
 
 exports.createInstructor = async (req, res) => {
   try {
-    const { userId, certifications, specialties } = req.body;
+    const { 
+      userId, 
+      cref,
+      yearsOfExperience,
+      bio,
+      certifications, 
+      specialties,
+      availability,
+      maxStudents,
+      students 
+    } = req.body;
+
+    // Validações básicas
+    if (!userId) {
+      return res.status(400).json({ message: "userId é obrigatório" });
+    }
+
+    if (!yearsOfExperience || yearsOfExperience < 0) {
+      return res.status(400).json({ message: "Anos de experiência inválido" });
+    }
+
+    if (!bio || bio.length < 50) {
+      return res.status(400).json({ message: "Biografia deve ter pelo menos 50 caracteres" });
+    }
+
+    if (!certifications || certifications.length === 0) {
+      return res.status(400).json({ message: "Pelo menos uma certificação é obrigatória" });
+    }
+
+    if (!specialties || specialties.length === 0) {
+      return res.status(400).json({ message: "Pelo menos uma especialização é obrigatória" });
+    }
+
+    if (!availability || !availability.workingDays || availability.workingDays.length === 0) {
+      return res.status(400).json({ message: "Defina pelo menos um dia de trabalho" });
+    }
 
     // Verifica se o usuário já é instrutor
     const existingInstructor = await Instructor.findOne({ userId });
     if (existingInstructor) {
-      return res.status(400).json({ message: "Usuário já é instrutor." });
+      return res.status(400).json({ message: "Usuário já é instrutor" });
     }
 
+    // Busca dados do usuário para incluir no instrutor
+    const User = require("../models/user");
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado" });
+    }
+
+    // Cria o instrutor
     const newInstructor = new Instructor({
       userId,
-      certifications: certifications || [],
-      specialties: specialties || [],
+      name: user.name,
+      email: user.email,
+      phone: user.phone || null,
+      cref: cref || null,
+      yearsOfExperience,
+      bio,
+      certifications,
+      specialties,
+      availability: {
+        workingDays: availability.workingDays,
+        startTime: availability.startTime || '08:00',
+        endTime: availability.endTime || '18:00'
+      },
+      maxStudents: maxStudents || 20,
+      students: students || []
     });
 
     await newInstructor.save();
-    res.status(201).json({ message: "Instrutor criado com sucesso.", instructor: newInstructor });
+
+    // Se houver alunos selecionados, atualiza o campo instructorId deles
+    if (students && students.length > 0) {
+      const Student = require("../models/student");
+      
+      await Student.updateMany(
+        { _id: { $in: students } },
+        { $set: { instructorId: newInstructor._id } }
+      );
+    }
+
+    // Popula dados para retornar
+    const populatedInstructor = await Instructor.findById(newInstructor._id)
+      .populate('userId', 'name email')
+      .populate('students', 'name email cpf');
+
+    res.status(201).json({ 
+      message: "Instrutor criado com sucesso!", 
+      instructor: populatedInstructor 
+    });
   } catch (error) {
-    res.status(500).json({ message: "Erro ao criar instrutor.", error: error.message });
+    console.error('Erro ao criar instrutor:', error);
+    res.status(500).json({ 
+      message: "Erro ao criar instrutor", 
+      error: error.message 
+    });
   }
 };
 
