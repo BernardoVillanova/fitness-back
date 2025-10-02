@@ -18,7 +18,6 @@ const normalizeTrainingExperience = (experience) => {
 // 1. Criar Aluno
 exports.createStudent = async (req, res) => {
   try {
-    console.log("Received payload:", JSON.stringify(req.body, null, 2));
     const { userId, name, email, cpf, phone, birthDate, personalInfo, healthRestrictions, goals } = req.body;
 
     // Validar campos obrigatórios
@@ -147,7 +146,6 @@ exports.createStudent = async (req, res) => {
       status: "active"
     });
 
-    console.log("Creating student with data:", JSON.stringify(newStudent, null, 2));
     await newStudent.save();
     
     // Populate userId antes de retornar
@@ -174,7 +172,7 @@ exports.getStudentById = async (req, res) => {
 
     const student = await Student.findById(studentId)
       .populate("userId", "email name cpf phone birthDate")
-      .populate("instructorId", "name")
+      .populate("instructorId")
       .populate("currentWorkoutPlanId");
 
     if (!student) {
@@ -385,7 +383,7 @@ exports.getStudentByUserId = async (req, res) => {
 
     const student = await Student.findOne({ userId })
       .populate("userId", "email name cpf phone birthDate")
-      .populate("instructorId", "name")
+      .populate("instructorId")
       .populate("currentWorkoutPlanId");
 
     if (!student) {
@@ -401,7 +399,31 @@ exports.getStudentByUserId = async (req, res) => {
 // Get all students
 exports.getStudents = async (req, res) => {
   try {
-    const students = await Student.find().populate('userId instructorId');
+    const { search, limit } = req.query;
+    let query = {};
+    
+    // Se houver busca, criar filtro para nome, email ou CPF
+    if (search) {
+      const searchRegex = new RegExp(search, 'i');
+      const cpfSearch = search.replace(/\D/g, ''); // Remove formatação do CPF
+      
+      query = {
+        $or: [
+          { name: searchRegex },
+          { email: searchRegex },
+          { cpf: cpfSearch }
+        ]
+      };
+    }
+    
+    let studentsQuery = Student.find(query).populate('userId instructorId');
+    
+    // Aplicar limite se especificado
+    if (limit) {
+      studentsQuery = studentsQuery.limit(parseInt(limit));
+    }
+    
+    const students = await studentsQuery;
     res.status(200).json(students);
   } catch (error) {
     res.status(500).json({ message: "Erro ao buscar alunos.", error: error.message });

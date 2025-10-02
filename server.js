@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const path = require("path");
 const connectDB = require("./config/db");
 const swaggerDocs = require("./docs/swagger");
 const studentsRoutes = require("./routes/students")
@@ -9,6 +10,7 @@ const instructorRoutes = require("./routes/instructors");
 const workoutRoutes = require("./routes/workoutPlans");
 const workoutSessionRoutes = require("./routes/workoutSessions");
 const progressRoutes = require("./routes/progress");
+const gymRoutes = require("./routes/gyms");
 const swaggerUi = require("swagger-ui-express");
 
 dotenv.config();
@@ -22,10 +24,14 @@ app.use(
   cors()
 );
 
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 connectDB();
 
 app.use("/api/auth", authRoutes);
 app.use("/api/instructors", instructorRoutes);
+app.use("/api/gyms", gymRoutes);
 app.use("/api/workout", workoutRoutes);
 app.use("/api/students", studentsRoutes);
 app.use("/api/student", workoutSessionRoutes);

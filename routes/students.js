@@ -335,6 +335,10 @@ router.post("/", createStudent);
  *       500:
  *         description: Erro ao buscar aluno.
  */
+
+// Lista todos os alunos (com suporte para busca)
+router.get("/", getStudents);
+
 router.get("/user/:userId", getStudentByUserId);
 
 router.get("/:studentId", getStudentById);

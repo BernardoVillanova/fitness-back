@@ -31,6 +31,10 @@ const UserSchema = new mongoose.Schema({
     type: String, 
     enum: ["aluno", "personal"], 
     required: true
+  },
+  avatar: {
+    type: String,
+    default: null
   }
 });
 

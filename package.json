@@ -16,6 +16,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.13.0",
     "mongoose": "^8.7.0",
+    "multer": "^2.0.2",
     "pinia": "^3.0.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
