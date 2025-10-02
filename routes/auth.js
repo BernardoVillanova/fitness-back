@@ -258,4 +258,111 @@ router.put("/user/:userId", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/user/{userId}/avatar:
+ *   post:
+ *     summary: Upload de avatar do usuário
+ *     description: Faz upload da foto de perfil do usuário
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               avatar:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Avatar atualizado com sucesso
+ *       400:
+ *         description: Arquivo inválido
+ *       404:
+ *         description: Usuário não encontrado
+ *       500:
+ *         description: Erro ao fazer upload
+ */
+const multer = require('multer');
+const path = require('path');
+
+// Configuração do multer para avatares
+const avatarStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, '../uploads/avatars/'));
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `avatar-${req.params.userId}-${uniqueSuffix}${ext}`);
+  }
+});
+
+const avatarUpload = multer({
+  storage: avatarStorage,
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Tipo de arquivo inválido. Use JPG, PNG ou GIF.'));
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB
+  }
+}).single('avatar');
+
+router.post('/user/:userId/avatar', (req, res) => {
+  avatarUpload(req, res, async function (err) {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ message: 'Erro no upload: ' + err.message });
+    } else if (err) {
+      return res.status(400).json({ message: err.message });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
+    }
+
+    try {
+      const { userId } = req.params;
+      
+      // Atualizar usuário com URL do avatar
+      const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+      
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { avatar: avatarUrl },
+        { new: true }
+      );
+
+      if (!user) {
+        return res.status(404).json({ message: 'Usuário não encontrado.' });
+      }
+
+      res.json({
+        message: 'Avatar atualizado com sucesso!',
+        avatarUrl: avatarUrl,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          avatar: user.avatar
+        }
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar avatar:', error);
+      res.status(500).json({ message: 'Erro ao atualizar avatar.' });
+    }
+  });
+});
+
 module.exports = router;

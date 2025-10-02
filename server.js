@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const path = require("path");
 const connectDB = require("./config/db");
 const swaggerDocs = require("./docs/swagger");
 const studentsRoutes = require("./routes/students")
@@ -22,6 +23,9 @@ app.use(express.json());
 app.use(
   cors()
 );
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 connectDB();
 
