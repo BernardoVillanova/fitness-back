@@ -132,7 +132,8 @@ exports.getInstructorById = async (req, res) => {
     const { instructorId } = req.params;
 
     const instructor = await Instructor.findById(instructorId)
-      .populate("userId", "name email phone")
+      .populate("userId", "name email phone birthDate avatar")
+      .populate("gym", "name")
       .select("-__v");
 
     if (!instructor) {
@@ -142,6 +143,64 @@ exports.getInstructorById = async (req, res) => {
     res.status(200).json(instructor);
   } catch (error) {
     res.status(500).json({ message: "Erro ao buscar instrutor.", error: error.message });
+  }
+};
+
+exports.getInstructorByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const instructor = await Instructor.findOne({ userId })
+      .populate("userId", "name email phone birthDate avatar")
+      .populate("gymId", "name")
+      .select("-__v");
+
+    if (!instructor) {
+      return res.status(404).json({ message: "Instrutor não encontrado para este usuário." });
+    }
+
+    res.status(200).json(instructor);
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao buscar instrutor.", error: error.message });
+  }
+};
+
+exports.updateInstructor = async (req, res) => {
+  try {
+    const { instructorId } = req.params;
+    const { cref, specialization, yearsOfExperience, bio } = req.body;
+
+    const instructor = await Instructor.findById(instructorId);
+
+    if (!instructor) {
+      return res.status(404).json({ message: "Instrutor não encontrado." });
+    }
+
+    // Update instructor fields
+    if (cref !== undefined) instructor.cref = cref;
+    if (yearsOfExperience !== undefined) instructor.yearsOfExperience = yearsOfExperience;
+    if (bio !== undefined) instructor.bio = bio;
+    
+    // Handle specialization - convert from string to array if needed
+    if (specialization !== undefined) {
+      if (typeof specialization === 'string') {
+        instructor.specialties = specialization.split(',').map(s => s.trim()).filter(s => s);
+      } else if (Array.isArray(specialization)) {
+        instructor.specialties = specialization;
+      }
+    }
+
+    await instructor.save();
+
+    res.status(200).json({ 
+      message: "Instrutor atualizado com sucesso!", 
+      instructor 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: "Erro ao atualizar instrutor.", 
+      error: error.message 
+    });
   }
 };
 

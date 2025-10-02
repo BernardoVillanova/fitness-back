@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { createWorkoutPlan, getWorkoutPlans, getInstructors, getInstructorById, createInstructor } = require("../controllers/instructorController");
+const { createWorkoutPlan, getWorkoutPlans, getInstructors, getInstructorById, getInstructorByUserId, createInstructor, updateInstructor } = require("../controllers/instructorController");
 
 /**
  * @swagger
@@ -57,7 +57,9 @@ router.get("/", getInstructors);
  *       500:
  *         description: Erro ao buscar instrutor.
  */
+router.get("/user/:userId", getInstructorByUserId);
 router.get("/:instructorId", getInstructorById);
+router.put("/:instructorId", updateInstructor);
 
 /**
  * @swagger

@@ -57,6 +57,18 @@ exports.createStudent = async (req, res) => {
         currentHeight: personalInfo?.currentHeight,
         trainingExperience: normalizeTrainingExperience(personalInfo?.trainingExperience),
         
+        initialMeasurements: {
+          shoulder: personalInfo?.initialMeasurements?.shoulder || null,
+          chest: personalInfo?.initialMeasurements?.chest || null,
+          arm: personalInfo?.initialMeasurements?.arm || null,
+          forearm: personalInfo?.initialMeasurements?.forearm || null,
+          waist: personalInfo?.initialMeasurements?.waist || null,
+          hip: personalInfo?.initialMeasurements?.hip || null,
+          thigh: personalInfo?.initialMeasurements?.thigh || null,
+          calf: personalInfo?.initialMeasurements?.calf || null,
+          bodyFatPercentage: personalInfo?.initialMeasurements?.bodyFatPercentage || null
+        },
+        
         address: {
           cep: personalInfo?.address?.cep?.replace(/\D/g, '') || '',
           street: personalInfo?.address?.street || '',
@@ -138,9 +150,9 @@ exports.createStudent = async (req, res) => {
         },
         performance: goals?.performance || [],
         personal: goals?.personal || [],
-        monthlyWorkouts: goals?.monthlyWorkouts || 20,
-        monthlyCalories: goals?.monthlyCalories || 5000,
-        monthlyHours: goals?.monthlyHours || 40
+        monthlyWorkouts: goals?.monthlyWorkouts || null,
+        monthlyCalories: goals?.monthlyCalories || null,
+        monthlyHours: goals?.monthlyHours || null
       },
       
       status: "active"
@@ -618,19 +630,19 @@ exports.getStudentProfile = async (req, res) => {
     // Monthly goals progress
     const monthlyGoals = {
       workouts: {
-        target: goals.monthlyWorkouts || 20,
+        target: goals.monthlyWorkouts || null,
         current: completedThisMonth.length,
-        percentage: Math.round((completedThisMonth.length / (goals.monthlyWorkouts || 20)) * 100)
+        percentage: goals.monthlyWorkouts ? Math.round((completedThisMonth.length / goals.monthlyWorkouts) * 100) : null
       },
       hours: {
-        target: goals.monthlyHours || 40,
+        target: goals.monthlyHours || null,
         current: parseFloat((sessionsThisMonth.reduce((sum, s) => sum + (s.duration || 0), 0) / 60).toFixed(1)),
-        percentage: Math.round((sessionsThisMonth.reduce((sum, s) => sum + (s.duration || 0), 0) / 60 / (goals.monthlyHours || 40)) * 100)
+        percentage: goals.monthlyHours ? Math.round((sessionsThisMonth.reduce((sum, s) => sum + (s.duration || 0), 0) / 60 / goals.monthlyHours) * 100) : null
       },
       calories: {
-        target: goals.monthlyCalories || 5000,
+        target: goals.monthlyCalories || null,
         current: Math.round(sessionsThisMonth.reduce((sum, s) => sum + (s.duration || 0), 0) * 8),
-        percentage: Math.round((sessionsThisMonth.reduce((sum, s) => sum + (s.duration || 0), 0) * 8 / (goals.monthlyCalories || 5000)) * 100)
+        percentage: goals.monthlyCalories ? Math.round((sessionsThisMonth.reduce((sum, s) => sum + (s.duration || 0), 0) * 8 / goals.monthlyCalories) * 100) : null
       }
     };
 

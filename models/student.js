@@ -8,14 +8,10 @@ const MeasurementsSchema = new mongoose.Schema({
   abdomen: { type: Number },       // Abdômen
   hip: { type: Number },           // Quadril
   hips: { type: Number },          // Quadril (alias alternativo)
-  rightArm: { type: Number },      // Braço direito
-  leftArm: { type: Number },       // Braço esquerdo
+  arm: { type: Number },           // Braço
   forearm: { type: Number },       // Antebraço
-  rightThigh: { type: Number },    // Coxa direita
-  leftThigh: { type: Number },     // Coxa esquerda
-  calf: { type: Number },          // Panturrilha
-  rightCalf: { type: Number },     // Panturrilha direita
-  leftCalf: { type: Number }       // Panturrilha esquerda
+  thigh: { type: Number },         // Coxa
+  calf: { type: Number }           // Panturrilha
 }, { _id: false, strict: false });
 
 // Registro de evolução física do aluno (peso, medidas, composição corporal)
@@ -126,14 +122,15 @@ const StudentSchema = new mongoose.Schema({
     
     // Medidas Corporais Iniciais (opcional - para acompanhamento)
     initialMeasurements: {
-      shoulder: Number,    // Ombro (cm)
-      chest: Number,       // Peito (cm)
-      rightArm: Number,    // Braço (cm)
-      forearm: Number,     // Antebraço (cm)
-      waist: Number,       // Cintura (cm)
-      hip: Number,         // Quadril (cm)
-      rightThigh: Number,  // Coxa (cm)
-      calf: Number         // Panturrilha (cm)
+      shoulder: Number,         // Ombro (cm)
+      chest: Number,            // Peito (cm)
+      arm: Number,              // Braço (cm)
+      forearm: Number,          // Antebraço (cm)
+      waist: Number,            // Cintura (cm)
+      hip: Number,              // Quadril (cm)
+      thigh: Number,            // Coxa (cm)
+      calf: Number,             // Panturrilha (cm)
+      bodyFatPercentage: Number // % Gordura Corporal
     },
     
     // Experiência e Perfil
@@ -298,9 +295,9 @@ const StudentSchema = new mongoose.Schema({
     }],
     
     // Configurações de Metas Mensais
-    monthlyWorkouts: { type: Number, default: 20 }, // Meta de treinos por mês
-    monthlyCalories: { type: Number, default: 5000 }, // Meta de calorias por mês
-    monthlyHours: { type: Number, default: 40 } // Meta de horas por mês
+    monthlyWorkouts: { type: Number }, // Meta de treinos por mês
+    monthlyCalories: { type: Number }, // Meta de calorias por mês
+    monthlyHours: { type: Number } // Meta de horas por mês
   },
   
   // Evolução física (peso, medidas, força)
