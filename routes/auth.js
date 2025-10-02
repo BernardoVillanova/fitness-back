@@ -175,4 +175,87 @@ router.post("/login", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/user/{userId}:
+ *   put:
+ *     summary: Atualiza informações básicas do usuário.
+ *     description: Permite atualizar nome, email, telefone e data de nascimento do usuário.
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               birthDate:
+ *                 type: string
+ *                 format: date
+ *     responses:
+ *       200:
+ *         description: Usuário atualizado com sucesso.
+ *       400:
+ *         description: Email já está em uso por outro usuário.
+ *       404:
+ *         description: Usuário não encontrado.
+ *       500:
+ *         description: Erro ao atualizar usuário.
+ */
+router.put("/user/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const { name, email, phone, birthDate } = req.body;
+
+  try {
+    // Verificar se o usuário existe
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    // Se está alterando o email, verificar se já não está em uso
+    if (email && email !== user.email) {
+      const emailExists = await User.findOne({ email });
+      if (emailExists) {
+        return res.status(400).json({ message: "Email já está em uso por outro usuário." });
+      }
+    }
+
+    // Atualizar apenas os campos fornecidos
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (phone) user.phone = phone;
+    if (birthDate) user.birthDate = birthDate;
+
+    await user.save();
+
+    res.status(200).json({ 
+      message: "Usuário atualizado com sucesso.",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        birthDate: user.birthDate,
+        cpf: user.cpf,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error("Erro ao atualizar usuário:", error);
+    res.status(500).json({ message: "Erro ao atualizar usuário." });
+  }
+});
+
 module.exports = router;
