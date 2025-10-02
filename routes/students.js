@@ -12,7 +12,8 @@ const {
   deleteStudent,
   unassignInstructor,
   addProgressLog,
-  updateGoalStatus
+  updateGoalStatus,
+  getStudentProfile
 } = require("../controllers/studentController");
 
 /**
@@ -141,6 +142,109 @@ const {
  *         description: Erro ao criar aluno.
  */
 router.post("/", createStudent);
+
+/**
+ * @swagger
+ * /api/students/link:
+ *   post:
+ *     summary: Vincula um usuário existente como aluno de um instrutor
+ *     description: Cria um registro de Student para um usuário que ainda não possui instrutor
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - instructorId
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: ID do usuário a ser vinculado
+ *               instructorId:
+ *                 type: string
+ *                 description: ID do instrutor
+ *     responses:
+ *       201:
+ *         description: Aluno vinculado com sucesso
+ *       400:
+ *         description: Usuário já possui instrutor ou dados inválidos
+ *       500:
+ *         description: Erro ao vincular aluno
+ */
+router.post("/link", async (req, res) => {
+  try {
+    const { userId, instructorId } = req.body;
+
+    console.log('📥 [LINK] Recebendo requisição de vínculo:', { userId, instructorId });
+
+    if (!userId || !instructorId) {
+      return res.status(400).json({ message: 'userId e instructorId são obrigatórios' });
+    }
+
+    // Verificar se o usuário existe
+    const User = require('../models/user');
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log('❌ [LINK] Usuário não encontrado:', userId);
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+    console.log('✅ [LINK] Usuário encontrado:', user.name);
+
+    // Verificar se o instrutor existe
+    const Instructor = require('../models/instructor');
+    const instructor = await Instructor.findById(instructorId);
+    if (!instructor) {
+      console.log('❌ [LINK] Instrutor não encontrado:', instructorId);
+      return res.status(404).json({ message: 'Instrutor não encontrado' });
+    }
+    console.log('✅ [LINK] Instrutor encontrado');
+
+    // Buscar se já existe um Student para este userId
+    const Student = require('../models/student');
+    let student = await Student.findOne({ userId });
+
+    console.log('🔍 [LINK] Buscando Student com userId:', userId);
+    console.log('🔍 [LINK] Student encontrado:', student ? `SIM (ID: ${student._id})` : 'NÃO');
+
+    if (student) {
+      // Se já existe Student, verificar se já tem instrutor
+      if (student.instructorId && student.instructorId.toString() !== instructorId) {
+        console.log('⚠️ [LINK] Student já vinculado a outro instrutor:', student.instructorId);
+        return res.status(400).json({ message: 'Este usuário já está vinculado a outro instrutor' });
+      }
+      
+      // Atualizar APENAS o instructorId do Student existente
+      console.log('🔄 [LINK] Atualizando instructorId do Student existente');
+      student.instructorId = instructorId;
+      student.status = 'active';
+      await student.save();
+      console.log('✅ [LINK] Student atualizado com sucesso');
+    } else {
+      // Se não existe Student, retornar erro
+      console.log('❌ [LINK] Student não encontrado. Usuário deve completar cadastro primeiro');
+      return res.status(404).json({ 
+        message: 'Registro de aluno não encontrado. O usuário precisa completar o cadastro de aluno primeiro.' 
+      });
+    }
+
+    // Retornar aluno vinculado populado
+    const populatedStudent = await Student.findById(student._id)
+      .populate('userId', 'name email cpf avatar')
+      .populate('instructorId', 'userId');
+
+    console.log('✅ [LINK] Vínculo concluído com sucesso');
+
+    res.status(200).json({
+      message: 'Aluno vinculado com sucesso',
+      student: populatedStudent
+    });
+  } catch (error) {
+    console.error('Erro ao vincular aluno:', error);
+    res.status(500).json({ message: 'Erro ao vincular aluno', error: error.message });
+  }
+});
 
 /**
  * @swagger
@@ -340,6 +444,28 @@ router.post("/", createStudent);
 router.get("/", getStudents);
 
 router.get("/user/:userId", getStudentByUserId);
+
+/**
+ * @swagger
+ * /api/students/{studentId}/profile:
+ *   get:
+ *     summary: Busca perfil completo do aluno com análises e estatísticas.
+ *     description: Retorna dados agregados incluindo informações pessoais, histórico de treinos, progresso físico, metas e estatísticas completas.
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Perfil completo do aluno.
+ *       404:
+ *         description: Aluno não encontrado.
+ *       500:
+ *         description: Erro ao buscar perfil do aluno.
+ */
+router.get("/:studentId/profile", getStudentProfile);
 
 router.get("/:studentId", getStudentById);
 

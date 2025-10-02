@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 const Student = require("../models/student"); // Novo: para criar aluno automaticamente
+const Instructor = require("../models/instructor");
 require("dotenv").config();
 
 const router = express.Router();
@@ -169,8 +170,21 @@ router.post("/login", async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    res.status(200).json({ token });
+    // Retornar token e dados básicos do usuário
+    res.status(200).json({ 
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        cpf: user.cpf,
+        phone: user.phone,
+        avatar: user.avatar
+      }
+    });
   } catch (error) {
+    console.error('Erro no login:', error);
     res.status(500).json({ message: "Erro ao realizar login." });
   }
 });
@@ -363,6 +377,70 @@ router.post('/user/:userId/avatar', (req, res) => {
       res.status(500).json({ message: 'Erro ao atualizar avatar.' });
     }
   });
+});
+
+/**
+ * @swagger
+ * /api/users/without-instructor:
+ *   get:
+ *     summary: Lista usuários que não possuem instrutor vinculado
+ *     description: Busca usuários com role "aluno" que ainda não estão vinculados a nenhum instrutor
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Termo de busca (nome, email ou CPF)
+ *     responses:
+ *       200:
+ *         description: Lista de usuários sem instrutor
+ */
+router.get('/users/without-instructor', async (req, res) => {
+  try {
+    const { search } = req.query;
+    
+    console.log('🔍 [WITHOUT-INSTRUCTOR] Buscando usuários sem instrutor...');
+    
+    // Buscar APENAS os Students que JÁ TÊM instructorId preenchido
+    const studentsWithInstructor = await Student.find({ 
+      instructorId: { $exists: true, $ne: null } 
+    }).select('userId');
+    
+    const userIdsWithInstructor = studentsWithInstructor.map(s => s.userId?.toString()).filter(Boolean);
+    
+    console.log('📋 [WITHOUT-INSTRUCTOR] UserIds que JÁ TÊM instrutor:', userIdsWithInstructor);
+    
+    // Construir query de busca
+    const query = {
+      role: 'aluno',
+      _id: { $nin: userIdsWithInstructor } // Excluir APENAS usuários que já têm instrutor
+    };
+    
+    // Se houver termo de busca, adicionar filtros
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      query.$or = [
+        { name: searchRegex },
+        { email: searchRegex },
+        { cpf: searchRegex }
+      ];
+    }
+    
+    console.log('🔎 [WITHOUT-INSTRUCTOR] Query:', JSON.stringify(query, null, 2));
+    
+    // Buscar usuários
+    const users = await User.find(query)
+      .select('name email cpf avatar')
+      .limit(50)
+      .sort({ name: 1 });
+    
+    console.log(`✅ [WITHOUT-INSTRUCTOR] Encontrados ${users.length} usuários disponíveis`);
+    
+    res.json(users);
+  } catch (error) {
+    console.error('❌ [WITHOUT-INSTRUCTOR] Erro ao buscar usuários sem instrutor:', error);
+    res.status(500).json({ message: 'Erro ao buscar usuários.' });
+  }
 });
 
 module.exports = router;
