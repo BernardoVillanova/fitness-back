@@ -48,6 +48,24 @@ exports.getWorkoutPlans = async (req, res) => {
   }
 };
 
+exports.getInstructorById = async (req, res) => {
+  try {
+    const { instructorId } = req.params;
+
+    const instructor = await Instructor.findById(instructorId)
+      .populate("userId", "name email phone")
+      .select("-__v");
+
+    if (!instructor) {
+      return res.status(404).json({ message: "Instrutor não encontrado." });
+    }
+
+    res.status(200).json(instructor);
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao buscar instrutor.", error: error.message });
+  }
+};
+
 exports.getInstructors = async (req, res) => {
   try {
     const { name, specialty, location } = req.query;

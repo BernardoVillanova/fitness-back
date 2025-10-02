@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { createWorkoutPlan, getWorkoutPlans, getInstructors, createInstructor } = require("../controllers/instructorController");
+const { createWorkoutPlan, getWorkoutPlans, getInstructors, getInstructorById, createInstructor } = require("../controllers/instructorController");
 
 /**
  * @swagger
@@ -36,6 +36,28 @@ const { createWorkoutPlan, getWorkoutPlans, getInstructors, createInstructor } =
  *         description: Erro ao buscar instrutores.
  */
 router.get("/", getInstructors);
+
+/**
+ * @swagger
+ * /api/instructors/{instructorId}:
+ *   get:
+ *     summary: Busca um instrutor por ID.
+ *     description: Retorna os detalhes de um instrutor específico.
+ *     parameters:
+ *       - in: path
+ *         name: instructorId
+ *         required: true
+ *         type: string
+ *         description: ID do instrutor.
+ *     responses:
+ *       200:
+ *         description: Instrutor encontrado com sucesso.
+ *       404:
+ *         description: Instrutor não encontrado.
+ *       500:
+ *         description: Erro ao buscar instrutor.
+ */
+router.get("/:instructorId", getInstructorById);
 
 /**
  * @swagger

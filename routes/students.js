@@ -312,7 +312,8 @@ router.post("/", createStudent);
  *       500:
  *         description: Erro ao buscar aluno.
  */
-router.get("/:studentId", getStudentById);
+// IMPORTANTE: Rotas específicas devem vir ANTES das rotas genéricas
+// /user/:userId deve vir antes de /:studentId
 
 /**
  * @swagger
@@ -335,6 +336,8 @@ router.get("/:studentId", getStudentById);
  *         description: Erro ao buscar aluno.
  */
 router.get("/user/:userId", getStudentByUserId);
+
+router.get("/:studentId", getStudentById);
 
 /**
  * @swagger
