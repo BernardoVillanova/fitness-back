@@ -1,5 +1,23 @@
 const mongoose = require("mongoose");
 
+// Sub-schema para medidas corporais
+const MeasurementsSchema = new mongoose.Schema({
+  shoulder: { type: Number },      // Ombro
+  chest: { type: Number },         // Peitoral/Peito
+  waist: { type: Number },         // Cintura
+  abdomen: { type: Number },       // Abdômen
+  hip: { type: Number },           // Quadril
+  hips: { type: Number },          // Quadril (alias alternativo)
+  rightArm: { type: Number },      // Braço direito
+  leftArm: { type: Number },       // Braço esquerdo
+  forearm: { type: Number },       // Antebraço
+  rightThigh: { type: Number },    // Coxa direita
+  leftThigh: { type: Number },     // Coxa esquerda
+  calf: { type: Number },          // Panturrilha
+  rightCalf: { type: Number },     // Panturrilha direita
+  leftCalf: { type: Number }       // Panturrilha esquerda
+}, { _id: false, strict: false });
+
 // Registro de evolução física do aluno (peso, medidas, composição corporal)
 const ProgressLogSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
@@ -10,18 +28,7 @@ const ProgressLogSchema = new mongoose.Schema({
   muscleMass: { type: Number }, // kg
   
   // Circunferências (cm)
-  measurements: {
-    chest: { type: Number, alias: 'peitoral' },      // Peitoral
-    waist: { type: Number, alias: 'cintura' },       // Cintura
-    abdomen: { type: Number, alias: 'abdomen' },     // Abdômen
-    hips: { type: Number, alias: 'quadril' },        // Quadril
-    rightArm: { type: Number, alias: 'bracoDireito' },   // Braço direito
-    leftArm: { type: Number, alias: 'bracoEsquerdo' },   // Braço esquerdo
-    rightThigh: { type: Number, alias: 'coxaDireita' },  // Coxa direita
-    leftThigh: { type: Number, alias: 'coxaEsquerda' },  // Coxa esquerda
-    rightCalf: { type: Number, alias: 'panturrilhaDireita' },  // Panturrilha direita
-    leftCalf: { type: Number, alias: 'panturrilhaEsquerda' }   // Panturrilha esquerda
-  },
+  measurements: MeasurementsSchema,
   
   // Força (cargas máximas ou testes)
   strengthTests: {
@@ -116,6 +123,18 @@ const StudentSchema = new mongoose.Schema({
     // Dados Físicos Atuais
     currentWeight: { type: Number, required: true }, // kg
     currentHeight: { type: Number, required: true }, // cm
+    
+    // Medidas Corporais Iniciais (opcional - para acompanhamento)
+    initialMeasurements: {
+      shoulder: Number,    // Ombro (cm)
+      chest: Number,       // Peito (cm)
+      rightArm: Number,    // Braço (cm)
+      forearm: Number,     // Antebraço (cm)
+      waist: Number,       // Cintura (cm)
+      hip: Number,         // Quadril (cm)
+      rightThigh: Number,  // Coxa (cm)
+      calf: Number         // Panturrilha (cm)
+    },
     
     // Experiência e Perfil
     trainingExperience: {

@@ -328,8 +328,15 @@ exports.addProgressLog = async (req, res) => {
     const { studentId } = req.params;
     const { weight, measurements, bodyFatPercentage, notes } = req.body;
 
-    if (!weight || !measurements) {
-      return res.status(400).json({ message: "Peso e medidas são obrigatórios." });
+    console.log('📊 Recebendo dados de progresso:');
+    console.log('Weight:', weight);
+    console.log('Body Fat:', bodyFatPercentage);
+    console.log('Measurements:', JSON.stringify(measurements, null, 2));
+    console.log('Notes:', notes);
+
+    // Validação flexível - pelo menos um campo deve estar preenchido
+    if (!weight && !measurements && !bodyFatPercentage) {
+      return res.status(400).json({ message: "Informe pelo menos peso, percentual de gordura ou medidas." });
     }
 
     const student = await Student.findById(studentId);
@@ -337,16 +344,32 @@ exports.addProgressLog = async (req, res) => {
       return res.status(404).json({ message: "Aluno não encontrado." });
     }
 
-    student.progressHistory.push({
-      weight,
-      measurements,
-      bodyFatPercentage,
-      notes,
-    });
+    const progressEntry = {
+      date: new Date()
+    };
+
+    if (weight) progressEntry.weight = weight;
+    if (bodyFatPercentage) progressEntry.bodyFatPercentage = bodyFatPercentage;
+    if (measurements) progressEntry.measurements = measurements;
+    if (notes) progressEntry.notes = notes;
+
+    console.log('📝 Entry antes de salvar:', JSON.stringify(progressEntry, null, 2));
+
+    student.progressHistory.push(progressEntry);
 
     await student.save();
+    
+    console.log('✅ Progresso salvo com sucesso!');
+    console.log('Progress History Length:', student.progressHistory.length);
+    
+    // Buscar o documento atualizado para confirmar
+    const updatedStudent = await Student.findById(studentId);
+    const lastEntry = updatedStudent.progressHistory[updatedStudent.progressHistory.length - 1];
+    console.log('🔍 Última entrada salva no banco:', JSON.stringify(lastEntry, null, 2));
+    
     res.status(200).json(student);
   } catch (error) {
+    console.error('❌ Erro ao salvar progresso:', error);
     res.status(500).json({ message: "Erro ao registrar progresso.", error: error.message });
   }
 };
@@ -463,5 +486,346 @@ exports.unassignInstructor = async (req, res) => {
     res.status(200).json({ message: "Instrutor desvinculado com sucesso.", student });
   } catch (error) {
     res.status(500).json({ message: "Erro ao desvincular instrutor.", error: error.message });
+  }
+};
+
+// Get comprehensive student profile with analytics
+exports.getStudentProfile = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const WorkoutSession = require('../models/workoutSession');
+    const WorkoutPlan = require('../models/workoutPlan');
+
+    // Find student with all relationships
+    const student = await Student.findById(studentId)
+      .populate('userId', 'email name role')
+      .populate('instructorId', 'name email phone')
+      .populate('gymId', 'name address')
+      .populate('currentWorkoutPlanId')
+      .populate('workoutPlans');
+
+    if (!student) {
+      return res.status(404).json({ message: "Aluno não encontrado." });
+    }
+
+    // Get all workout sessions
+    const workoutSessions = await WorkoutSession.find({ studentId })
+      .populate('workoutPlanId', 'name')
+      .sort({ startTime: -1 })
+      .limit(100);
+
+    // Calculate statistics
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    // Sessions by period
+    const sessionsLast30Days = workoutSessions.filter(s => new Date(s.startTime) >= thirtyDaysAgo);
+    const sessionsLast7Days = workoutSessions.filter(s => new Date(s.startTime) >= sevenDaysAgo);
+    const sessionsThisMonth = workoutSessions.filter(s => new Date(s.startTime) >= startOfMonth);
+    const sessionsLastMonth = workoutSessions.filter(s => {
+      const date = new Date(s.startTime);
+      return date >= startOfLastMonth && date <= endOfLastMonth;
+    });
+
+    // Completed sessions
+    const completedSessions = workoutSessions.filter(s => s.status === 'completed');
+    const completedLast30Days = sessionsLast30Days.filter(s => s.status === 'completed');
+    const completedLast7Days = sessionsLast7Days.filter(s => s.status === 'completed');
+    const completedThisMonth = sessionsThisMonth.filter(s => s.status === 'completed');
+    const completedLastMonth = sessionsLastMonth.filter(s => s.status === 'completed');
+
+    // Calculate total time and calories
+    const totalMinutes = completedSessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+    const totalHours = (totalMinutes / 60).toFixed(1);
+    const estimatedCalories = Math.round(totalMinutes * 8); // ~8 cal/min average
+
+    const minutesLast30Days = completedLast30Days.reduce((sum, s) => sum + (s.duration || 0), 0);
+    const caloriesLast30Days = Math.round(minutesLast30Days * 8);
+
+    // Current streak calculation
+    let currentStreak = 0;
+    if (completedSessions.length > 0) {
+      const sortedSessions = [...completedSessions].sort((a, b) => 
+        new Date(b.startTime) - new Date(a.startTime)
+      );
+      
+      let checkDate = new Date();
+      checkDate.setHours(0, 0, 0, 0);
+      
+      for (const session of sortedSessions) {
+        const sessionDate = new Date(session.startTime);
+        sessionDate.setHours(0, 0, 0, 0);
+        
+        const diffDays = Math.floor((checkDate - sessionDate) / (1000 * 60 * 60 * 24));
+        
+        if (diffDays <= 1) {
+          currentStreak++;
+          checkDate = new Date(sessionDate);
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+    }
+
+    // Workout frequency analysis
+    const workoutFrequency = {
+      daily: {},
+      weekly: {}
+    };
+
+    completedLast30Days.forEach(session => {
+      const date = new Date(session.startTime);
+      const dayKey = date.toISOString().split('T')[0];
+      workoutFrequency.daily[dayKey] = (workoutFrequency.daily[dayKey] || 0) + 1;
+      
+      const weekDay = date.toLocaleDateString('pt-BR', { weekday: 'long' });
+      workoutFrequency.weekly[weekDay] = (workoutFrequency.weekly[weekDay] || 0) + 1;
+    });
+
+    // Progress history analysis
+    const progressHistory = student.progressHistory || [];
+    const latestProgress = progressHistory.length > 0 ? progressHistory[0] : null;
+    const firstProgress = progressHistory.length > 0 ? progressHistory[progressHistory.length - 1] : null;
+
+    let progressChanges = null;
+    if (latestProgress && firstProgress && latestProgress._id !== firstProgress._id) {
+      progressChanges = {
+        weight: latestProgress.weight && firstProgress.weight 
+          ? (latestProgress.weight - firstProgress.weight).toFixed(1)
+          : null,
+        bodyFat: latestProgress.bodyFatPercentage && firstProgress.bodyFatPercentage
+          ? (latestProgress.bodyFatPercentage - firstProgress.bodyFatPercentage).toFixed(1)
+          : null,
+        muscleMass: latestProgress.muscleMass && firstProgress.muscleMass
+          ? (latestProgress.muscleMass - firstProgress.muscleMass).toFixed(1)
+          : null,
+        timeSpan: Math.floor((new Date(latestProgress.date) - new Date(firstProgress.date)) / (1000 * 60 * 60 * 24))
+      };
+    }
+
+    // Goals analysis
+    const goals = student.goals || {};
+    const achievedGoals = (goals.personal || []).filter(g => g.achieved).length;
+    const totalPersonalGoals = (goals.personal || []).length;
+    const achievedPerformanceGoals = (goals.performance || []).filter(g => g.achieved).length;
+    const totalPerformanceGoals = (goals.performance || []).length;
+
+    // Monthly goals progress
+    const monthlyGoals = {
+      workouts: {
+        target: goals.monthlyWorkouts || 20,
+        current: completedThisMonth.length,
+        percentage: Math.round((completedThisMonth.length / (goals.monthlyWorkouts || 20)) * 100)
+      },
+      hours: {
+        target: goals.monthlyHours || 40,
+        current: parseFloat((sessionsThisMonth.reduce((sum, s) => sum + (s.duration || 0), 0) / 60).toFixed(1)),
+        percentage: Math.round((sessionsThisMonth.reduce((sum, s) => sum + (s.duration || 0), 0) / 60 / (goals.monthlyHours || 40)) * 100)
+      },
+      calories: {
+        target: goals.monthlyCalories || 5000,
+        current: Math.round(sessionsThisMonth.reduce((sum, s) => sum + (s.duration || 0), 0) * 8),
+        percentage: Math.round((sessionsThisMonth.reduce((sum, s) => sum + (s.duration || 0), 0) * 8 / (goals.monthlyCalories || 5000)) * 100)
+      }
+    };
+
+    // Activity timeline (last 14 days)
+    const activityTimeline = [];
+    for (let i = 13; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+      
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+      
+      const daySessions = completedSessions.filter(s => {
+        const sessionDate = new Date(s.startTime);
+        return sessionDate >= date && sessionDate < nextDate;
+      });
+      
+      activityTimeline.push({
+        date: date.toISOString().split('T')[0],
+        workouts: daySessions.length,
+        minutes: daySessions.reduce((sum, s) => sum + (s.duration || 0), 0),
+        hasActivity: daySessions.length > 0
+      });
+    }
+
+    // Recent sessions with details
+    const recentSessions = workoutSessions.slice(0, 10).map(session => ({
+      id: session._id,
+      workoutName: session.workoutName,
+      divisionName: session.divisionName,
+      date: session.startTime,
+      duration: session.duration,
+      status: session.status,
+      completedExercises: session.completedExercises,
+      totalExercises: session.totalExercises,
+      completionRate: session.totalExercises > 0 
+        ? Math.round((session.completedExercises / session.totalExercises) * 100)
+        : 0
+    }));
+
+    // Comparison with last month
+    const comparison = {
+      workouts: completedThisMonth.length - completedLastMonth.length,
+      workoutsPercentage: completedLastMonth.length > 0 
+        ? Math.round(((completedThisMonth.length - completedLastMonth.length) / completedLastMonth.length) * 100)
+        : 0,
+      averageWorkoutsPerWeek: (completedLast30Days.length / 4.3).toFixed(1)
+    };
+
+    // Build comprehensive response
+    const profileData = {
+      // Student basic info
+      student: {
+        id: student._id,
+        name: student.name,
+        email: student.email,
+        phone: student.phone,
+        birthDate: student.birthDate,
+        age: student.age,
+        cpf: student.cpf,
+        status: student.status,
+        createdAt: student.createdAt,
+        instructor: student.instructorId ? {
+          id: student.instructorId._id,
+          name: student.instructorId.name,
+          email: student.instructorId.email,
+          phone: student.instructorId.phone
+        } : null,
+        gym: student.gymId ? {
+          id: student.gymId._id,
+          name: student.gymId.name,
+          address: student.gymId.address
+        } : null
+      },
+
+      // Personal information
+      personalInfo: {
+        currentWeight: student.personalInfo?.currentWeight,
+        currentHeight: student.personalInfo?.currentHeight,
+        bmi: student.bmi,
+        trainingExperience: student.personalInfo?.trainingExperience,
+        address: student.personalInfo?.address,
+        preferences: student.personalInfo?.preferences,
+        availability: student.personalInfo?.availability
+      },
+
+      // Health information
+      healthInfo: {
+        hasRestrictions: student.healthRestrictions?.hasChronicConditions || 
+                        student.healthRestrictions?.hasInjuries ||
+                        student.healthRestrictions?.hasMedications,
+        chronicConditions: student.healthRestrictions?.chronicConditions || [],
+        injuries: student.healthRestrictions?.injuries || [],
+        medications: student.healthRestrictions?.medications || [],
+        allergies: student.healthRestrictions?.allergies || [],
+        emergencyContact: student.healthRestrictions?.emergencyContact
+      },
+
+      // Goals and targets
+      goals: {
+        primary: goals.primary || {},
+        weight: goals.weight || {},
+        bodyComposition: goals.bodyComposition || {},
+        performance: goals.performance || [],
+        personal: goals.personal || [],
+        monthly: monthlyGoals,
+        summary: {
+          totalPersonalGoals,
+          achievedPersonalGoals: achievedGoals,
+          personalGoalsPercentage: totalPersonalGoals > 0 
+            ? Math.round((achievedGoals / totalPersonalGoals) * 100) 
+            : 0,
+          totalPerformanceGoals,
+          achievedPerformanceGoals,
+          performanceGoalsPercentage: totalPerformanceGoals > 0
+            ? Math.round((achievedPerformanceGoals / totalPerformanceGoals) * 100)
+            : 0
+        }
+      },
+
+      // Workout statistics
+      statistics: {
+        allTime: {
+          totalWorkouts: completedSessions.length,
+          totalHours: parseFloat(totalHours),
+          totalCalories: estimatedCalories,
+          currentStreak: currentStreak,
+          averageWorkoutsPerWeek: (completedSessions.length / Math.max(1, Math.ceil(completedSessions.length > 0 ? (now - new Date(completedSessions[completedSessions.length - 1].startTime)) / (7 * 24 * 60 * 60 * 1000) : 1))).toFixed(1)
+        },
+        last30Days: {
+          totalWorkouts: completedLast30Days.length,
+          totalHours: (minutesLast30Days / 60).toFixed(1),
+          totalCalories: caloriesLast30Days,
+          averageWorkoutsPerWeek: (completedLast30Days.length / 4.3).toFixed(1),
+          averageDuration: completedLast30Days.length > 0 
+            ? Math.round(minutesLast30Days / completedLast30Days.length)
+            : 0
+        },
+        last7Days: {
+          totalWorkouts: completedLast7Days.length,
+          averageWorkoutsPerWeek: completedLast7Days.length
+        },
+        thisMonth: {
+          totalWorkouts: completedThisMonth.length,
+          comparison: comparison
+        },
+        frequency: workoutFrequency
+      },
+
+      // Progress tracking
+      progress: {
+        latest: latestProgress,
+        history: progressHistory.slice(0, 12), // Last 12 entries
+        changes: progressChanges,
+        chartData: progressHistory.slice(0, 12).reverse().map(p => ({
+          date: p.date,
+          weight: p.weight,
+          bodyFat: p.bodyFatPercentage,
+          muscleMass: p.muscleMass
+        }))
+      },
+
+      // Activity data
+      activity: {
+        timeline: activityTimeline,
+        recentSessions: recentSessions,
+        mostActiveDay: Object.entries(workoutFrequency.weekly).sort((a, b) => b[1] - a[1])[0]?.[0] || null,
+        mostActiveDayCount: Object.entries(workoutFrequency.weekly).sort((a, b) => b[1] - a[1])[0]?.[1] || 0
+      },
+
+      // Current workout plan
+      currentWorkoutPlan: student.currentWorkoutPlanId ? {
+        id: student.currentWorkoutPlanId._id,
+        name: student.currentWorkoutPlanId.name,
+        divisions: student.currentWorkoutPlanId.divisions,
+        createdAt: student.currentWorkoutPlanId.createdAt
+      } : null,
+
+      // All workout plans
+      workoutPlans: student.workoutPlans.map(plan => ({
+        id: plan._id,
+        name: plan.name,
+        divisionsCount: plan.divisions?.length || 0,
+        createdAt: plan.createdAt
+      }))
+    };
+
+    res.status(200).json(profileData);
+  } catch (error) {
+    console.error("Error getting student profile:", error);
+    res.status(500).json({ 
+      message: "Erro ao buscar perfil do aluno.", 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
