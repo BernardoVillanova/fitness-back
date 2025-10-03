@@ -7,6 +7,7 @@ const ExerciseSchema = new mongoose.Schema({
   sets: { type: Number, required: true }, // Número de séries
   reps: { type: Number, required: true }, // Repetições
   idealWeight: { type: Number, required: true }, // Carga ideal
+  equipmentId: { type: mongoose.Schema.Types.ObjectId, ref: "Equipment" }, // Referência ao equipamento (opcional)
 });
 
 const WorkoutDivisionSchema = new mongoose.Schema({
