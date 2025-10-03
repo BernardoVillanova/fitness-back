@@ -140,18 +140,37 @@ exports.startSession = async (req, res) => {
         reps: exercise.reps
       });
       
+      const isBodyWeight = exercise.idealWeight === 0 || !exercise.idealWeight;
+      
       return {
         exerciseId: exercise._id?.toString() || `exercise_${index}`,
         exerciseName: exercise.name,
+        idealWeight: exercise.idealWeight || 0,
+        restTime: exercise.restTime || 60,
+        toFailure: exercise.toFailure || false,
+        muscleGroups: division.muscleGroups || [],
         sets: Array.from({ length: exercise.sets || 3 }, (_, i) => ({
           setNumber: i + 1,
           reps: exercise.reps || 10,
           weight: exercise.idealWeight || 0,
-          completed: false
+          isBodyWeight: isBodyWeight,
+          actualReps: null,
+          completed: false,
+          completedAt: null,
+          restTimeTaken: null,
+          difficulty: null,
+          notes: ''
         })),
-        completed: false
+        notes: exercise.notes || '',
+        completed: false,
+        completedAt: null,
+        skipped: false,
+        skipReason: ''
       };
     });
+    
+    // Calcular total de sets
+    const totalSets = exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
     
     // Criar nova sessão
     const newSession = new WorkoutSession({
@@ -159,9 +178,15 @@ exports.startSession = async (req, res) => {
       workoutPlanId,
       workoutName: workoutPlan.name,
       divisionName: division.name,
+      divisionIndex,
       exercises,
       totalExercises: exercises.length,
       completedExercises: 0,
+      skippedExercises: 0,
+      totalSets,
+      completedSets: 0,
+      totalVolume: 0,
+      studentWeight: student.weight || null,
       startTime: new Date()
     });
     
@@ -198,7 +223,7 @@ exports.startSession = async (req, res) => {
 exports.updateSession = async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const { exercises, notes } = req.body;
+    const { exercises, notes, currentExerciseIndex } = req.body;
     const userId = req.user.id;
     
     // Buscar aluno pelo userId
@@ -233,6 +258,11 @@ exports.updateSession = async (req, res) => {
     
     if (notes) {
       session.notes = notes;
+    }
+
+    // Armazenar índice do exercício atual
+    if (typeof currentExerciseIndex !== 'undefined') {
+      session.currentExerciseIndex = currentExerciseIndex;
     }
     
     await session.save();
