@@ -164,8 +164,23 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Credenciais inválidas." });
     }
 
+    // Buscar instructorId se o usuário for personal/instructor
+    let instructorId = null;
+    if (user.role === 'personal' || user.role === 'instructor') {
+      const Instructor = require('../models/instructor');
+      const instructor = await Instructor.findOne({ userId: user._id });
+      if (instructor) {
+        instructorId = instructor._id;
+      }
+    }
+
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
+      { 
+        id: user._id, 
+        email: user.email, 
+        role: user.role,
+        instructorId: instructorId // Incluir instructorId no token
+      },
       process.env.JWT_SECRET || "fallback-secret",
       { expiresIn: "1h" }
     );
@@ -175,12 +190,14 @@ router.post("/login", async (req, res) => {
       token,
       user: {
         id: user._id,
+        userId: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
         cpf: user.cpf,
         phone: user.phone,
-        avatar: user.avatar
+        avatar: user.avatar,
+        instructorId: instructorId // Incluir no response também
       }
     });
   } catch (error) {

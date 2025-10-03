@@ -1,6 +1,16 @@
 const express = require("express");
 const router = express.Router();
-const { createWorkoutPlan, getWorkoutPlans } = require("../controllers/workoutPlanController");
+const { authenticate: authMiddleware } = require("../middleware/authMiddleware");
+const { 
+  createWorkoutPlan, 
+  getWorkoutPlans, 
+  getPlanStudents, 
+  unassignStudentFromPlan,
+  getWorkoutPlansDetailed,
+  updateWorkoutPlan,
+  deleteWorkoutPlan,
+  getWorkoutPlanById
+} = require("../controllers/workoutPlanController");
 
 /**
  * @swagger
@@ -60,7 +70,7 @@ const { createWorkoutPlan, getWorkoutPlans } = require("../controllers/workoutPl
  *       500:
  *         description: Erro ao criar ficha de treino.
  */
-router.post("/workout-plans", createWorkoutPlan);
+router.post("/workout-plans", authMiddleware, createWorkoutPlan);
 
 /**
  * @swagger
@@ -142,5 +152,21 @@ router.get("/workout-plans", getWorkoutPlans);
  *         description: Erro ao atribuir ficha de treino.
  */
 // router.put("/:studentId/assign-workout-plan", assignWorkoutPlanToStudent);
+
+// Nova rota para buscar planos detalhados
+router.get("/workout-plans-detailed", authMiddleware, getWorkoutPlansDetailed);
+
+// Buscar plano específico por ID
+router.get("/workout-plans/:id", authMiddleware, getWorkoutPlanById);
+
+// Atualizar plano de treino
+router.put("/workout-plans/:id", authMiddleware, updateWorkoutPlan);
+
+// Deletar plano de treino
+router.delete("/workout-plans/:id", authMiddleware, deleteWorkoutPlan);
+
+// Rotas para gerenciar alunos de um plano
+router.get("/workout-plans/:planId/students", getPlanStudents);
+router.delete("/workout-plans/:planId/students/:studentId", unassignStudentFromPlan);
 
 module.exports = router;
