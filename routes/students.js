@@ -13,7 +13,8 @@ const {
   unassignInstructor,
   addProgressLog,
   updateGoalStatus,
-  getStudentProfile
+  getStudentProfile,
+  assignWorkoutPlanToStudent
 } = require("../controllers/studentController");
 
 /**
@@ -440,8 +441,8 @@ router.post("/link", async (req, res) => {
  *         description: Erro ao buscar aluno.
  */
 
-// Lista todos os alunos (com suporte para busca)
-router.get("/", getStudents);
+// Lista todos os alunos (com suporte para busca) - FILTRADO por instrutor logado
+router.get("/", authMiddleware, getStudents);
 
 router.get("/user/:userId", getStudentByUserId);
 
@@ -711,5 +712,40 @@ router.post("/:studentId/progress", addProgressLog);
  *         description: Erro ao atualizar status da meta.
  */
 router.put("/:studentId/goals/:goalId", updateGoalStatus);
+
+/**
+ * @swagger
+ * /api/students/{studentId}/assign-workout-plan:
+ *   put:
+ *     summary: Atribui um plano de treino a um aluno.
+ *     description: Associa um plano de treino ao aluno e sincroniza o array assignedStudents do plano.
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         description: ID do aluno.
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - workoutPlanId
+ *             properties:
+ *               workoutPlanId:
+ *                 type: string
+ *                 description: ID do plano de treino a ser atribuído.
+ *     responses:
+ *       200:
+ *         description: Plano atribuído com sucesso.
+ *       404:
+ *         description: Aluno ou plano não encontrado.
+ *       500:
+ *         description: Erro ao atribuir plano.
+ */
+router.put("/:studentId/assign-workout-plan", assignWorkoutPlanToStudent);
 
 module.exports = router;

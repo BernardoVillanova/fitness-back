@@ -434,8 +434,19 @@ exports.getStudentByUserId = async (req, res) => {
 // Get all students
 exports.getStudents = async (req, res) => {
   try {
+    console.log('🔍 getStudents - req.user:', req.user);
+    
+    // FILTRAR SEMPRE pelo instrutor logado (do token JWT)
+    const instructorId = req.user?.instructorId || req.user?._id;
+    
+    if (!instructorId) {
+      return res.status(401).json({ message: "Instrutor não autenticado." });
+    }
+    
+    console.log('👨‍🏫 Filtrando alunos do instrutor:', instructorId);
+    
     const { search, limit } = req.query;
-    let query = {};
+    let query = { instructorId }; // SEMPRE filtrar por instrutor
     
     // Se houver busca, criar filtro para nome, email ou CPF
     if (search) {
@@ -443,6 +454,7 @@ exports.getStudents = async (req, res) => {
       const cpfSearch = search.replace(/\D/g, ''); // Remove formatação do CPF
       
       query = {
+        instructorId, // Manter filtro do instrutor
         $or: [
           { name: searchRegex },
           { email: searchRegex },
@@ -459,8 +471,10 @@ exports.getStudents = async (req, res) => {
     }
     
     const students = await studentsQuery;
+    console.log('✅ Alunos encontrados:', students.length);
     res.status(200).json(students);
   } catch (error) {
+    console.error('❌ Erro ao buscar alunos:', error);
     res.status(500).json({ message: "Erro ao buscar alunos.", error: error.message });
   }
 };
@@ -839,5 +853,62 @@ exports.getStudentProfile = async (req, res) => {
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
+  }
+};
+
+// Atribuir plano de treino ao aluno (com sincronização bidirecional)
+exports.assignWorkoutPlanToStudent = async (req, res) => {
+  const { studentId } = req.params;
+  const { workoutPlanId } = req.body;
+
+  try {
+    const WorkoutPlan = require("../models/workoutPlan");
+
+    // Verifica se o aluno existe
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: "Aluno não encontrado." });
+    }
+
+    // Verifica se o plano de treino existe
+    const workoutPlan = await WorkoutPlan.findById(workoutPlanId);
+    if (!workoutPlan) {
+      return res.status(404).json({ message: "Plano de treino não encontrado." });
+    }
+
+    // Remove o aluno do plano anterior (se existir)
+    if (student.workoutPlanId && student.workoutPlanId.toString() !== workoutPlanId) {
+      await WorkoutPlan.findByIdAndUpdate(
+        student.workoutPlanId,
+        { $pull: { assignedStudents: studentId } }
+      );
+    }
+
+    // Atualiza o aluno com o novo plano
+    student.workoutPlanId = workoutPlanId;
+    await student.save();
+
+    // Adiciona o aluno à lista de assignedStudents do novo plano (se ainda não estiver)
+    if (!workoutPlan.assignedStudents.includes(studentId)) {
+      workoutPlan.assignedStudents.push(studentId);
+      await workoutPlan.save();
+    }
+
+    res.status(200).json({ 
+      message: "Ficha de treino atribuída com sucesso!",
+      student: {
+        id: student._id,
+        name: student.name,
+        workoutPlanId: student.workoutPlanId
+      },
+      workoutPlan: {
+        id: workoutPlan._id,
+        name: workoutPlan.name,
+        studentsCount: workoutPlan.assignedStudents.length
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao atribuir plano:', error);
+    res.status(500).json({ message: "Erro interno ao atribuir ficha de treino." });
   }
 };
