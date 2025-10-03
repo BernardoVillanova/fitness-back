@@ -57,10 +57,6 @@ exports.createEquipment = async (req, res) => {
       return res.status(400).json({ message: "Nome do equipamento é obrigatório" });
     }
 
-    if (!description) {
-      return res.status(400).json({ message: "Descrição é obrigatória" });
-    }
-
     if (!howToUse) {
       return res.status(400).json({ message: "Instruções de uso são obrigatórias" });
     }
@@ -87,7 +83,7 @@ exports.createEquipment = async (req, res) => {
       category,
       muscleGroups: Array.isArray(muscleGroups) ? muscleGroups : [],
       difficulty: difficulty || 'intermediario',
-      safetyTips: Array.isArray(safetyTips) ? safetyTips : [],
+      safetyTips: safetyTips || '',
       image: imagePath,
       isAvailable: true,
       usageCount: 0
@@ -187,10 +183,55 @@ exports.getEquipmentById = async (req, res) => {
 exports.updateEquipment = async (req, res) => {
   try {
     const { equipmentId } = req.params;
-    const updateData = req.body;
+    console.log('🔵 [updateEquipment] Recebendo atualização para:', equipmentId);
+    console.log('🔵 [updateEquipment] Body:', req.body);
+    
+    // Buscar equipamento atual
+    const currentEquipment = await Equipment.findById(equipmentId);
+    if (!currentEquipment) {
+      return res.status(404).json({ message: "Equipamento não encontrado" });
+    }
+
+    const updateData = { ...req.body };
 
     // Não permitir alteração do instructorId
     delete updateData.instructorId;
+
+    // Processar muscleGroups se vier como string JSON
+    if (typeof updateData.muscleGroups === 'string') {
+      try {
+        updateData.muscleGroups = JSON.parse(updateData.muscleGroups);
+      } catch (e) {
+        updateData.muscleGroups = [];
+      }
+    }
+
+    // Processar nova imagem se fornecida (base64)
+    if (updateData.imageBase64) {
+      console.log('🟢 [updateEquipment] Processando nova imagem base64');
+      
+      // Remove imagem antiga se existir
+      if (currentEquipment.image) {
+        const oldImagePath = path.join(__dirname, '..', currentEquipment.image);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+          console.log('🗑️ [updateEquipment] Imagem antiga removida:', oldImagePath);
+        }
+      }
+
+      // Salva nova imagem
+      const newImagePath = saveBase64Image(updateData.imageBase64, currentEquipment.instructorId);
+      if (newImagePath) {
+        updateData.image = newImagePath;
+        console.log('✅ [updateEquipment] Nova imagem salva:', newImagePath);
+      } else {
+        console.error('❌ [updateEquipment] Erro ao processar nova imagem');
+      }
+      
+      delete updateData.imageBase64;
+    }
+
+    console.log('🟣 [updateEquipment] Dados finais para atualização:', updateData);
 
     const equipment = await Equipment.findByIdAndUpdate(
       equipmentId,
@@ -198,25 +239,29 @@ exports.updateEquipment = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    if (!equipment) {
-      return res.status(404).json({ message: "Equipamento não encontrado" });
-    }
+    console.log('✅ [updateEquipment] Equipamento atualizado com sucesso');
 
     res.status(200).json({
+      success: true,
       message: "Equipamento atualizado com sucesso!",
       equipment
     });
   } catch (error) {
-    console.error("Erro ao atualizar equipamento:", error);
+    console.error("❌ [updateEquipment] Erro ao atualizar equipamento:", error);
     
     if (error.name === "ValidationError") {
       return res.status(400).json({ 
+        success: false,
         message: "Dados inválidos", 
         errors: Object.values(error.errors).map(e => e.message)
       });
     }
 
-    res.status(500).json({ message: "Erro ao atualizar equipamento" });
+    res.status(500).json({ 
+      success: false,
+      message: "Erro ao atualizar equipamento",
+      error: error.message 
+    });
   }
 };
 

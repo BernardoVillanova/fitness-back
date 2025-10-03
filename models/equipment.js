@@ -21,11 +21,11 @@ const EquipmentSchema = new mongoose.Schema({
     trim: true
   },
   
-  // Descrição geral do equipamento (obrigatório)
+  // Descrição geral do equipamento (opcional)
   description: {
     type: String,
-    required: [true, 'A descrição é obrigatória'],
-    trim: true
+    trim: true,
+    default: ''
   },
   
   // Instruções detalhadas de como usar (obrigatório para alunos)
@@ -65,8 +65,9 @@ const EquipmentSchema = new mongoose.Schema({
   
   // Dicas de segurança e cuidados importantes
   safetyTips: {
-    type: [String],
-    default: []
+    type: String,
+    trim: true,
+    default: ''
   },
   
   // Status de disponibilidade
