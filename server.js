@@ -12,6 +12,7 @@ const workoutSessionRoutes = require("./routes/workoutSessions");
 const progressRoutes = require("./routes/progress");
 const gymRoutes = require("./routes/gyms");
 const equipmentRoutes = require("./routes/equipments");
+const exerciseRoutes = require("./routes/exercises");
 const swaggerUi = require("swagger-ui-express");
 
 dotenv.config();
@@ -42,6 +43,7 @@ app.use("/api/students", studentsRoutes);
 app.use("/api/student", workoutSessionRoutes);
 app.use("/api/student", progressRoutes);
 app.use("/api/equipments", equipmentRoutes);
+app.use("/api/exercises", exerciseRoutes);
 
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
