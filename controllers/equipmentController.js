@@ -40,7 +40,17 @@ const saveBase64Image = (base64String, instructorId) => {
 exports.createEquipment = async (req, res) => {
   try {
     const { instructorId } = req.params;
-    const { name, description, category, muscleGroups, difficulty, safetyTips, imageBase64 } = req.body;
+    const { 
+      name, 
+      description, 
+      howToUse,
+      category, 
+      muscleGroups, 
+      difficulty, 
+      safetyTips, 
+      imageBase64,
+      gymId
+    } = req.body;
 
     // Validações básicas
     if (!name) {
@@ -51,6 +61,10 @@ exports.createEquipment = async (req, res) => {
       return res.status(400).json({ message: "Descrição é obrigatória" });
     }
 
+    if (!howToUse) {
+      return res.status(400).json({ message: "Instruções de uso são obrigatórias" });
+    }
+
     if (!category) {
       return res.status(400).json({ message: "Categoria é obrigatória" });
     }
@@ -59,23 +73,31 @@ exports.createEquipment = async (req, res) => {
     let imagePath = null;
     if (imageBase64) {
       imagePath = saveBase64Image(imageBase64, instructorId);
+      if (!imagePath) {
+        return res.status(400).json({ message: "Erro ao processar a imagem. Verifique o formato." });
+      }
     }
 
     const equipmentData = {
       instructorId,
+      gymId: gymId || null,
       name,
       description,
+      howToUse,
       category,
-      muscleGroups: muscleGroups || [],
+      muscleGroups: Array.isArray(muscleGroups) ? muscleGroups : [],
       difficulty: difficulty || 'intermediario',
-      safetyTips: safetyTips || [],
-      image: imagePath
+      safetyTips: Array.isArray(safetyTips) ? safetyTips : [],
+      image: imagePath,
+      isAvailable: true,
+      usageCount: 0
     };
 
     const equipment = new Equipment(equipmentData);
     await equipment.save();
 
     res.status(201).json({
+      success: true,
       message: "Equipamento cadastrado com sucesso!",
       equipment
     });
@@ -83,13 +105,18 @@ exports.createEquipment = async (req, res) => {
     console.error("Erro ao criar equipamento:", error);
     
     if (error.name === "ValidationError") {
+      const errors = Object.values(error.errors).map(e => e.message);
       return res.status(400).json({ 
+        success: false,
         message: "Dados inválidos", 
-        errors: Object.values(error.errors).map(e => e.message)
+        errors
       });
     }
 
-    res.status(500).json({ message: "Erro ao cadastrar equipamento" });
+    res.status(500).json({ 
+      success: false,
+      message: "Erro ao cadastrar equipamento" 
+    });
   }
 };
 
@@ -97,33 +124,42 @@ exports.createEquipment = async (req, res) => {
 exports.getEquipmentsByInstructor = async (req, res) => {
   try {
     const { instructorId } = req.params;
-    const { category, condition, isAvailable } = req.query;
+    const { category, difficulty, isAvailable, muscleGroup } = req.query;
 
     // Construir filtro de busca
     const filter = { instructorId };
     
-    if (category) {
+    if (category && category !== 'todas') {
       filter.category = category;
     }
     
-    if (condition) {
-      filter.condition = condition;
+    if (difficulty) {
+      filter.difficulty = difficulty;
     }
     
     if (isAvailable !== undefined) {
       filter.isAvailable = isAvailable === 'true';
     }
 
+    if (muscleGroup) {
+      filter.muscleGroups = muscleGroup;
+    }
+
     const equipments = await Equipment.find(filter)
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.status(200).json({
+      success: true,
       count: equipments.length,
       equipments
     });
   } catch (error) {
     console.error("Erro ao buscar equipamentos:", error);
-    res.status(500).json({ message: "Erro ao buscar equipamentos" });
+    res.status(500).json({ 
+      success: false,
+      message: "Erro ao buscar equipamentos" 
+    });
   }
 };
 
