@@ -18,11 +18,15 @@ dotenv.config();
 
 const app = express();
 
-// Middleware
-app.use(express.json());
+// Middleware - Aumentar limite para suportar imagens base64
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use(
-  cors()
+  cors({
+    origin: ['http://localhost:8080', 'http://localhost:8081'],
+    credentials: true
+  })
 );
 
 // Serve static files from uploads directory

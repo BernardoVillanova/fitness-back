@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const EquipmentSchema = new mongoose.Schema({
-  // Referência ao Instrutor
+  // Referência ao Instrutor (obrigatório)
   instructorId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: "Instructor", 
@@ -17,14 +17,21 @@ const EquipmentSchema = new mongoose.Schema({
   // Nome do equipamento (obrigatório)
   name: {
     type: String,
-    required: true,
+    required: [true, 'O nome do equipamento é obrigatório'],
     trim: true
   },
   
-  // Descrição/instruções de uso para o aluno
+  // Descrição geral do equipamento (opcional)
   description: {
     type: String,
-    required: true,
+    trim: true,
+    default: ''
+  },
+  
+  // Instruções detalhadas de como usar (obrigatório para alunos)
+  howToUse: {
+    type: String,
+    required: [true, 'As instruções de uso são obrigatórias'],
     trim: true
   },
   
@@ -36,7 +43,7 @@ const EquipmentSchema = new mongoose.Schema({
     default: 'musculacao'
   },
   
-  // Grupos musculares trabalhados (importante para aluno saber)
+  // Grupos musculares trabalhados (importante para composição de exercícios)
   muscleGroups: {
     type: [String],
     enum: ['peito', 'costas', 'ombros', 'biceps', 'triceps', 'pernas', 'gluteos', 'abdomen', 'panturrilha', 'antebraco', 'corpo-todo'],
@@ -49,26 +56,27 @@ const EquipmentSchema = new mongoose.Schema({
     default: null
   },
   
-  // Status de disponibilidade
-  isAvailable: {
-    type: Boolean,
-    default: true
-  },
-  
-  // Dificuldade de uso
+  // Nível de dificuldade de uso
   difficulty: {
     type: String,
     enum: ['iniciante', 'intermediario', 'avancado'],
     default: 'intermediario'
   },
   
-  // Instruções de segurança
+  // Dicas de segurança e cuidados importantes
   safetyTips: {
-    type: [String],
-    default: []
+    type: String,
+    trim: true,
+    default: ''
   },
   
-  // Contador de uso (para estatísticas)
+  // Status de disponibilidade
+  isAvailable: {
+    type: Boolean,
+    default: true
+  },
+  
+  // Contador de uso em exercícios (para estatísticas)
   usageCount: {
     type: Number,
     default: 0

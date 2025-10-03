@@ -40,15 +40,25 @@ const saveBase64Image = (base64String, instructorId) => {
 exports.createEquipment = async (req, res) => {
   try {
     const { instructorId } = req.params;
-    const { name, description, category, muscleGroups, difficulty, safetyTips, imageBase64 } = req.body;
+    const { 
+      name, 
+      description, 
+      howToUse,
+      category, 
+      muscleGroups, 
+      difficulty, 
+      safetyTips, 
+      imageBase64,
+      gymId
+    } = req.body;
 
     // Validações básicas
     if (!name) {
       return res.status(400).json({ message: "Nome do equipamento é obrigatório" });
     }
 
-    if (!description) {
-      return res.status(400).json({ message: "Descrição é obrigatória" });
+    if (!howToUse) {
+      return res.status(400).json({ message: "Instruções de uso são obrigatórias" });
     }
 
     if (!category) {
@@ -59,23 +69,31 @@ exports.createEquipment = async (req, res) => {
     let imagePath = null;
     if (imageBase64) {
       imagePath = saveBase64Image(imageBase64, instructorId);
+      if (!imagePath) {
+        return res.status(400).json({ message: "Erro ao processar a imagem. Verifique o formato." });
+      }
     }
 
     const equipmentData = {
       instructorId,
+      gymId: gymId || null,
       name,
       description,
+      howToUse,
       category,
-      muscleGroups: muscleGroups || [],
+      muscleGroups: Array.isArray(muscleGroups) ? muscleGroups : [],
       difficulty: difficulty || 'intermediario',
-      safetyTips: safetyTips || [],
-      image: imagePath
+      safetyTips: safetyTips || '',
+      image: imagePath,
+      isAvailable: true,
+      usageCount: 0
     };
 
     const equipment = new Equipment(equipmentData);
     await equipment.save();
 
     res.status(201).json({
+      success: true,
       message: "Equipamento cadastrado com sucesso!",
       equipment
     });
@@ -83,13 +101,18 @@ exports.createEquipment = async (req, res) => {
     console.error("Erro ao criar equipamento:", error);
     
     if (error.name === "ValidationError") {
+      const errors = Object.values(error.errors).map(e => e.message);
       return res.status(400).json({ 
+        success: false,
         message: "Dados inválidos", 
-        errors: Object.values(error.errors).map(e => e.message)
+        errors
       });
     }
 
-    res.status(500).json({ message: "Erro ao cadastrar equipamento" });
+    res.status(500).json({ 
+      success: false,
+      message: "Erro ao cadastrar equipamento" 
+    });
   }
 };
 
@@ -97,33 +120,42 @@ exports.createEquipment = async (req, res) => {
 exports.getEquipmentsByInstructor = async (req, res) => {
   try {
     const { instructorId } = req.params;
-    const { category, condition, isAvailable } = req.query;
+    const { category, difficulty, isAvailable, muscleGroup } = req.query;
 
     // Construir filtro de busca
     const filter = { instructorId };
     
-    if (category) {
+    if (category && category !== 'todas') {
       filter.category = category;
     }
     
-    if (condition) {
-      filter.condition = condition;
+    if (difficulty) {
+      filter.difficulty = difficulty;
     }
     
     if (isAvailable !== undefined) {
       filter.isAvailable = isAvailable === 'true';
     }
 
+    if (muscleGroup) {
+      filter.muscleGroups = muscleGroup;
+    }
+
     const equipments = await Equipment.find(filter)
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.status(200).json({
+      success: true,
       count: equipments.length,
       equipments
     });
   } catch (error) {
     console.error("Erro ao buscar equipamentos:", error);
-    res.status(500).json({ message: "Erro ao buscar equipamentos" });
+    res.status(500).json({ 
+      success: false,
+      message: "Erro ao buscar equipamentos" 
+    });
   }
 };
 
@@ -151,10 +183,55 @@ exports.getEquipmentById = async (req, res) => {
 exports.updateEquipment = async (req, res) => {
   try {
     const { equipmentId } = req.params;
-    const updateData = req.body;
+    console.log('🔵 [updateEquipment] Recebendo atualização para:', equipmentId);
+    console.log('🔵 [updateEquipment] Body:', req.body);
+    
+    // Buscar equipamento atual
+    const currentEquipment = await Equipment.findById(equipmentId);
+    if (!currentEquipment) {
+      return res.status(404).json({ message: "Equipamento não encontrado" });
+    }
+
+    const updateData = { ...req.body };
 
     // Não permitir alteração do instructorId
     delete updateData.instructorId;
+
+    // Processar muscleGroups se vier como string JSON
+    if (typeof updateData.muscleGroups === 'string') {
+      try {
+        updateData.muscleGroups = JSON.parse(updateData.muscleGroups);
+      } catch (e) {
+        updateData.muscleGroups = [];
+      }
+    }
+
+    // Processar nova imagem se fornecida (base64)
+    if (updateData.imageBase64) {
+      console.log('🟢 [updateEquipment] Processando nova imagem base64');
+      
+      // Remove imagem antiga se existir
+      if (currentEquipment.image) {
+        const oldImagePath = path.join(__dirname, '..', currentEquipment.image);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+          console.log('🗑️ [updateEquipment] Imagem antiga removida:', oldImagePath);
+        }
+      }
+
+      // Salva nova imagem
+      const newImagePath = saveBase64Image(updateData.imageBase64, currentEquipment.instructorId);
+      if (newImagePath) {
+        updateData.image = newImagePath;
+        console.log('✅ [updateEquipment] Nova imagem salva:', newImagePath);
+      } else {
+        console.error('❌ [updateEquipment] Erro ao processar nova imagem');
+      }
+      
+      delete updateData.imageBase64;
+    }
+
+    console.log('🟣 [updateEquipment] Dados finais para atualização:', updateData);
 
     const equipment = await Equipment.findByIdAndUpdate(
       equipmentId,
@@ -162,25 +239,29 @@ exports.updateEquipment = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    if (!equipment) {
-      return res.status(404).json({ message: "Equipamento não encontrado" });
-    }
+    console.log('✅ [updateEquipment] Equipamento atualizado com sucesso');
 
     res.status(200).json({
+      success: true,
       message: "Equipamento atualizado com sucesso!",
       equipment
     });
   } catch (error) {
-    console.error("Erro ao atualizar equipamento:", error);
+    console.error("❌ [updateEquipment] Erro ao atualizar equipamento:", error);
     
     if (error.name === "ValidationError") {
       return res.status(400).json({ 
+        success: false,
         message: "Dados inválidos", 
         errors: Object.values(error.errors).map(e => e.message)
       });
     }
 
-    res.status(500).json({ message: "Erro ao atualizar equipamento" });
+    res.status(500).json({ 
+      success: false,
+      message: "Erro ao atualizar equipamento",
+      error: error.message 
+    });
   }
 };
 
