@@ -523,4 +523,55 @@ exports.skipExercise = async (req, res) => {
   }
 };
 
+// Buscar todas as sessões de um estudante para dashboard
+exports.getAllStudentSessions = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    console.log('📊 Buscando todas as sessões para dashboard - userId:', userId);
+    
+    // Buscar aluno pelo userId
+    const student = await Student.findOne({ userId });
+    if (!student) {
+      console.log('❌ Aluno não encontrado para userId:', userId);
+      return res.status(404).json({ message: 'Aluno não encontrado' });
+    }
+    
+    const studentId = student._id;
+    console.log('👨‍🎓 StudentId encontrado:', studentId);
+    
+    // Buscar TODAS as sessões do estudante (sem limite)
+    const sessions = await WorkoutSession.find({
+      studentId: studentId
+    })
+    .sort({ startTime: -1 }) // Ordenar por data mais recente
+    .populate('workoutPlanId');
+    
+    console.log(`📈 Total de sessões encontradas para studentId ${studentId}:`, sessions.length);
+    
+    // Log detalhado das sessões
+    sessions.forEach((session, index) => {
+      console.log(`📋 Sessão ${index + 1}:`, {
+        id: session._id,
+        name: session.workoutName,
+        division: session.divisionName,
+        status: session.status,
+        startTime: session.startTime,
+        endTime: session.endTime,
+        duration: session.duration,
+        studentId: session.studentId
+      });
+    });
+    
+    res.json({
+      success: true,
+      total: sessions.length,
+      sessions: sessions
+    });
+  } catch (error) {
+    console.error('💥 Erro ao buscar todas as sessões:', error);
+    res.status(500).json({ message: 'Erro ao buscar sessões do estudante' });
+  }
+};
+
 module.exports = exports;
