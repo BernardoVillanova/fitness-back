@@ -165,6 +165,25 @@ exports.getEquipmentById = async (req, res) => {
     const { equipmentId } = req.params;
     
     console.log('🔧 getEquipmentById chamado para ID:', equipmentId);
+    console.log('🔧 Tipo do ID:', typeof equipmentId);
+
+    // Validar se o ID é uma string válida
+    if (!equipmentId || typeof equipmentId !== 'string') {
+      console.log('❌ ID inválido:', equipmentId);
+      return res.status(400).json({ 
+        success: false,
+        message: "ID do equipamento inválido" 
+      });
+    }
+
+    // Validar formato do ObjectId
+    if (!equipmentId.match(/^[0-9a-fA-F]{24}$/)) {
+      console.log('❌ Formato de ID inválido:', equipmentId);
+      return res.status(400).json({ 
+        success: false,
+        message: "Formato do ID do equipamento inválido" 
+      });
+    }
 
     const equipment = await Equipment.findById(equipmentId)
       .populate('instructorId', 'name email')
@@ -172,11 +191,14 @@ exports.getEquipmentById = async (req, res) => {
 
     if (!equipment) {
       console.log('❌ Equipamento não encontrado:', equipmentId);
-      return res.status(404).json({ message: "Equipamento não encontrado" });
+      return res.status(404).json({ 
+        success: false,
+        message: "Equipamento não encontrado" 
+      });
     }
 
     console.log('✅ Equipamento encontrado:', equipment.name);
-    res.status(200).json({ equipment });
+    res.status(200).json(equipment);
   } catch (error) {
     console.error("💥 Erro ao buscar equipamento:", error);
     res.status(500).json({ message: "Erro ao buscar equipamento" });
