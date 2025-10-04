@@ -47,6 +47,20 @@ app.use("/api/exercises", exerciseRoutes);
 
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
+// Middleware de tratamento de erros
+app.use((error, req, res, next) => {
+  console.error('💥 Erro não capturado:', error);
+  console.error('📍 Stack trace:', error.stack);
+  console.error('📋 Request URL:', req.url);
+  console.error('📋 Request Method:', req.method);
+  console.error('📋 Request Body:', req.body);
+  res.status(500).json({ 
+    message: 'Erro interno do servidor', 
+    error: error.message,
+    stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);

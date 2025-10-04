@@ -39,7 +39,6 @@ const WorkoutSessionSchema = new mongoose.Schema({
   },
   workoutName: { type: String, required: true },
   divisionName: { type: String, required: true },
-  divisionIndex: { type: Number }, // Índice da divisão no plano
   exercises: [ExerciseLogSchema],
   status: { 
     type: String, 
@@ -61,7 +60,6 @@ const WorkoutSessionSchema = new mongoose.Schema({
   mood: { type: String, enum: ['great', 'good', 'normal', 'tired', 'bad'] }, // Como o aluno se sentiu
   notes: String,
   instructorFeedback: String, // Feedback do instrutor após análise
-  currentExerciseIndex: { type: Number, default: 0 }, // Índice do exercício atual
   restStartTime: { type: Date }, // Horário de início do descanso
   isResting: { type: Boolean, default: false }, // Se está em período de descanso
   createdAt: { type: Date, default: Date.now }
