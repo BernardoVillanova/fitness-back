@@ -30,4 +30,7 @@ router.post('/sessions/:sessionId/cancel', workoutSessionController.cancelSessio
 // Histórico de treinos
 router.get('/sessions/history', workoutSessionController.getSessionHistory);
 
+// Buscar todas as sessões para dashboard
+router.get('/sessions/all', workoutSessionController.getAllStudentSessions);
+
 module.exports = router;
