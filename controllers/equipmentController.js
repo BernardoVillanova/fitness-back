@@ -163,18 +163,22 @@ exports.getEquipmentsByInstructor = async (req, res) => {
 exports.getEquipmentById = async (req, res) => {
   try {
     const { equipmentId } = req.params;
+    
+    console.log('🔧 getEquipmentById chamado para ID:', equipmentId);
 
     const equipment = await Equipment.findById(equipmentId)
       .populate('instructorId', 'name email')
       .populate('gymId', 'name location');
 
     if (!equipment) {
+      console.log('❌ Equipamento não encontrado:', equipmentId);
       return res.status(404).json({ message: "Equipamento não encontrado" });
     }
 
+    console.log('✅ Equipamento encontrado:', equipment.name);
     res.status(200).json({ equipment });
   } catch (error) {
-    console.error("Erro ao buscar equipamento:", error);
+    console.error("💥 Erro ao buscar equipamento:", error);
     res.status(500).json({ message: "Erro ao buscar equipamento" });
   }
 };
