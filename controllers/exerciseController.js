@@ -132,6 +132,9 @@ exports.getExercisesByInstructor = async (req, res) => {
   try {
     const { instructorId } = req.params;
     const { category, difficulty, muscleGroup, equipmentId } = req.query;
+    
+    console.log('🔍 getExercisesByInstructor chamado para instructorId:', instructorId);
+    console.log('📋 Filtros recebidos:', { category, difficulty, muscleGroup, equipmentId });
 
     const filter = { instructorId, isActive: true };
     
@@ -151,10 +154,17 @@ exports.getExercisesByInstructor = async (req, res) => {
       filter.equipmentId = equipmentId;
     }
 
+    console.log('🎯 Filtro final para busca:', filter);
+
     const exercises = await Exercise.find(filter)
       .populate('equipmentId', 'name category image')
       .sort({ createdAt: -1 })
       .lean();
+
+    console.log(`✅ ${exercises.length} exercícios encontrados:`);
+    exercises.forEach((ex, i) => {
+      console.log(`${i + 1}. ${ex.name} (ID: ${ex._id}) - Imagem: ${ex.image}`);
+    });
 
     res.status(200).json({
       success: true,
@@ -162,7 +172,7 @@ exports.getExercisesByInstructor = async (req, res) => {
       exercises
     });
   } catch (error) {
-    console.error("Erro ao buscar exercícios:", error);
+    console.error("💥 Erro ao buscar exercícios:", error);
     res.status(500).json({ message: "Erro ao buscar exercícios" });
   }
 };
