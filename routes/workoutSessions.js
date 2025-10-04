@@ -18,6 +18,9 @@ router.post('/sessions/start', workoutSessionController.startSession);
 // Atualizar progresso da sessão
 router.put('/sessions/:sessionId', workoutSessionController.updateSession);
 
+// Pular exercício
+router.post('/sessions/:sessionId/skip-exercise', workoutSessionController.skipExercise);
+
 // Finalizar sessão
 router.post('/sessions/:sessionId/complete', workoutSessionController.completeSession);
 
