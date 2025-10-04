@@ -574,4 +574,46 @@ exports.getAllStudentSessions = async (req, res) => {
   }
 };
 
+// Buscar sessões de treino de todos os alunos de um instrutor (para dashboard do instrutor)
+exports.getInstructorStudentSessions = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    console.log('🏫 Buscando sessões dos alunos do instrutor - userId:', userId);
+    
+    // Buscar instrutor pelo userId (assumindo que temos um modelo Instructor)
+    const instructorId = req.params.instructorId || userId;
+    
+    // Buscar todos os alunos do instrutor
+    const students = await Student.find({ instructorId });
+    
+    if (!students.length) {
+      return res.status(404).json({ message: 'Nenhum aluno encontrado para este instrutor' });
+    }
+    
+    const studentIds = students.map(student => student._id);
+    console.log('👥 Alunos encontrados:', studentIds.length);
+    
+    // Buscar todas as sessões dos alunos do instrutor
+    const sessions = await WorkoutSession.find({
+      studentId: { $in: studentIds }
+    })
+    .sort({ startTime: -1 })
+    .populate('workoutPlanId')
+    .populate('studentId', 'name email personalInfo');
+    
+    console.log(`📊 Total de sessões encontradas:`, sessions.length);
+    
+    res.json({
+      success: true,
+      total: sessions.length,
+      sessions: sessions,
+      students: students
+    });
+  } catch (error) {
+    console.error('💥 Erro ao buscar sessões dos alunos:', error);
+    res.status(500).json({ message: 'Erro ao buscar sessões dos alunos do instrutor' });
+  }
+};
+
 module.exports = exports;

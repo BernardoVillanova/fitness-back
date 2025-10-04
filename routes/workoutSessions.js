@@ -33,4 +33,7 @@ router.get('/sessions/history', workoutSessionController.getSessionHistory);
 // Buscar todas as sessões para dashboard
 router.get('/sessions/all', workoutSessionController.getAllStudentSessions);
 
+// Buscar sessões de todos os alunos de um instrutor (para dashboard do instrutor)
+router.get('/sessions/instructor/:instructorId?', workoutSessionController.getInstructorStudentSessions);
+
 module.exports = router;
