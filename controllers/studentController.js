@@ -208,18 +208,56 @@ exports.getStudentById = async (req, res) => {
 exports.getStudentsByInstructorId = async (req, res) => {
   try {
     const { instructorId } = req.params;
-
-    const students = await Student.find({ instructorId })
-      .populate("userId", "email name cpf phone birthDate")
-      .populate("instructorId", "name")
-      .select("-__v");
-
-    if (!students.length) {
+    
+    console.log('🔍 Buscando alunos para instructorId:', instructorId);
+    
+    // Buscar o instrutor e popular seus alunos
+    const Instructor = require('../models/instructor');
+    const instructor = await Instructor.findById(instructorId).populate({
+      path: 'students',
+      populate: {
+        path: 'userId',
+        select: 'name email cpf phone birthDate avatar'
+      }
+    });
+    
+    if (!instructor) {
+      console.log('❌ Instrutor não encontrado:', instructorId);
+      return res.status(404).json({ message: "Instrutor não encontrado." });
+    }
+    
+    console.log('✅ Instrutor encontrado:', instructor.name);
+    console.log('👥 Total de alunos vinculados:', instructor.students.length);
+    
+    if (!instructor.students.length) {
+      console.log('⚠️ Nenhum aluno vinculado a este instrutor');
       return res.status(404).json({ message: "Nenhum aluno encontrado para este instrutor." });
     }
-
-    res.status(200).json(students);
+    
+    // Buscar dados completos dos alunos
+    const studentIds = instructor.students.map(student => student._id);
+    const students = await Student.find({ _id: { $in: studentIds } })
+      .populate("userId", "email name cpf phone birthDate avatar")
+      .populate("instructorId", "name email")
+      .populate("currentWorkoutPlanId", "name description")
+      .select("-__v");
+    
+    console.log('📊 Dados completos de', students.length, 'alunos carregados');
+    
+    // Adicionar informações extras de cada aluno
+    const enrichedStudents = students.map(student => {
+      const studentObj = student.toObject();
+      return {
+        ...studentObj,
+        name: student.userId?.name || 'Nome não disponível',
+        email: student.userId?.email || 'Email não disponível',
+        avatar: student.userId?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.userId?.name || 'User')}&background=6c5ce7&color=fff`
+      };
+    });
+    
+    res.status(200).json(enrichedStudents);
   } catch (error) {
+    console.error('💥 Erro ao buscar alunos por instructorId:', error);
     res.status(500).json({ message: "Erro ao buscar alunos.", error: error.message });
   }
 };
