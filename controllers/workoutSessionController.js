@@ -603,21 +603,38 @@ exports.getAllStudentSessions = async (req, res) => {
 exports.getInstructorStudentSessions = async (req, res) => {
   try {
     const userId = req.user.id;
+    const { instructorId } = req.params;
     
-    console.log('🏫 Buscando sessões dos alunos do instrutor - userId:', userId);
+    console.log('🏫 Buscando sessões dos alunos do instrutor - userId:', userId, 'instructorId:', instructorId);
     
-    // Buscar instrutor pelo userId usando o modelo correto
+    // Buscar instrutor pelo instructorId se fornecido, caso contrário pelo userId
     const Instructor = require('../models/instructor');
-    const instructor = await Instructor.findOne({ userId }).populate({
-      path: 'students',
-      populate: {
-        path: 'userId',
-        select: 'name email cpf phone avatar'
-      }
-    });
+    let instructor;
+    
+    if (instructorId) {
+      // Se instructorId foi fornecido na URL, usar ele
+      instructor = await Instructor.findById(instructorId).populate({
+        path: 'students',
+        populate: {
+          path: 'userId',
+          select: 'name email cpf phone avatar'
+        }
+      });
+      console.log('🔍 Buscando instrutor por ID:', instructorId);
+    } else {
+      // Caso contrário, buscar pelo userId do token
+      instructor = await Instructor.findOne({ userId }).populate({
+        path: 'students',
+        populate: {
+          path: 'userId',
+          select: 'name email cpf phone avatar'
+        }
+      });
+      console.log('🔍 Buscando instrutor por userId:', userId);
+    }
     
     if (!instructor) {
-      console.log('❌ Instrutor não encontrado para userId:', userId);
+      console.log('❌ Instrutor não encontrado para:', instructorId || userId);
       return res.status(404).json({ message: 'Instrutor não encontrado' });
     }
     
