@@ -14,6 +14,15 @@ exports.getStudentWorkouts = async (req, res) => {
       return res.status(404).json({ message: 'Aluno não encontrado' });
     }
     
+    // Verificar se o aluno tem um instrutor vinculado
+    if (!student.instructorId) {
+      return res.json({
+        hasInstructor: false,
+        workouts: [],
+        message: 'Estudante não possui instrutor vinculado'
+      });
+    }
+    
     const studentId = student._id;
     
     // Buscar estatísticas de cada plano
@@ -43,7 +52,11 @@ exports.getStudentWorkouts = async (req, res) => {
       })
     );
     
-    res.json(workoutsWithStats);
+    res.json({
+      hasInstructor: true,
+      workouts: workoutsWithStats,
+      message: 'Treinos carregados com sucesso'
+    });
   } catch (error) {
     console.error('Erro ao buscar treinos:', error);
     res.status(500).json({ message: 'Erro ao buscar treinos do aluno' });
