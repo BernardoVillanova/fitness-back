@@ -216,11 +216,31 @@ router.post("/link", async (req, res) => {
         return res.status(400).json({ message: 'Este usuário já está vinculado a outro instrutor' });
       }
       
-      // Atualizar APENAS o instructorId do Student existente
-      console.log('🔄 [LINK] Atualizando instructorId do Student existente');
-      student.instructorId = instructorId;
-      student.status = 'active';
-      await student.save();
+      // Se já tem o mesmo instrutor, não fazer nada
+      if (student.instructorId && student.instructorId.toString() === instructorId) {
+        console.log('ℹ️ [LINK] Student já vinculado a este instrutor');
+        
+        // Garantir que o student está no array do instrutor
+        if (!instructor.students.includes(student._id)) {
+          instructor.students.push(student._id);
+          await instructor.save();
+          console.log('✅ [LINK] Student adicionado ao array do instrutor (sincronização)');
+        }
+      } else {
+        // Atualizar o instructorId do Student existente
+        console.log('🔄 [LINK] Atualizando instructorId do Student existente');
+        student.instructorId = instructorId;
+        student.status = 'active';
+        await student.save();
+        
+        // Adicionar o ID do Student no array students do Instructor
+        if (!instructor.students.includes(student._id)) {
+          instructor.students.push(student._id);
+          await instructor.save();
+          console.log('✅ [LINK] Student adicionado ao array do instrutor');
+        }
+      }
+      
       console.log('✅ [LINK] Student atualizado com sucesso');
     } else {
       // Se não existe Student, retornar erro
@@ -244,6 +264,84 @@ router.post("/link", async (req, res) => {
   } catch (error) {
     console.error('Erro ao vincular aluno:', error);
     res.status(500).json({ message: 'Erro ao vincular aluno', error: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/students/{studentId}/unlink:
+ *   put:
+ *     summary: Desvincula um aluno do instrutor
+ *     description: Remove o instructorId do aluno e remove o aluno do array students do instrutor
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do aluno a ser desvinculado
+ *     responses:
+ *       200:
+ *         description: Aluno desvinculado com sucesso
+ *       404:
+ *         description: Aluno não encontrado
+ *       500:
+ *         description: Erro ao desvincular aluno
+ */
+router.put("/:studentId/unlink", async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    console.log('📥 [UNLINK] Recebendo requisição de desvínculo:', { studentId });
+
+    // Buscar o Student
+    const Student = require('../models/student');
+    const student = await Student.findById(studentId);
+
+    if (!student) {
+      console.log('❌ [UNLINK] Student não encontrado:', studentId);
+      return res.status(404).json({ message: 'Aluno não encontrado' });
+    }
+
+    console.log('✅ [UNLINK] Student encontrado:', student._id);
+
+    // Se o student tem instrutor, remover do array do instrutor
+    if (student.instructorId) {
+      console.log('🔍 [UNLINK] Student tem instructorId:', student.instructorId);
+      
+      const Instructor = require('../models/instructor');
+      const instructor = await Instructor.findById(student.instructorId);
+      
+      if (instructor) {
+        // Remover o studentId do array students do instructor
+        instructor.students = instructor.students.filter(
+          studentObjectId => studentObjectId.toString() !== studentId
+        );
+        await instructor.save();
+        console.log('✅ [UNLINK] Student removido do array do instrutor');
+      } else {
+        console.log('⚠️ [UNLINK] Instrutor não encontrado, mas continuando com o desvínculo');
+      }
+    }
+
+    // Remover o instructorId do Student
+    student.instructorId = null;
+    student.status = 'inactive'; // Marcar como inativo quando desvinculado
+    await student.save();
+
+    console.log('✅ [UNLINK] Student desvinculado com sucesso');
+
+    // Retornar aluno desvinculado populado
+    const populatedStudent = await Student.findById(student._id)
+      .populate('userId', 'name email cpf avatar');
+
+    res.status(200).json({
+      message: 'Aluno desvinculado com sucesso',
+      student: populatedStudent
+    });
+  } catch (error) {
+    console.error('Erro ao desvincular aluno:', error);
+    res.status(500).json({ message: 'Erro ao desvincular aluno', error: error.message });
   }
 });
 

@@ -32,6 +32,11 @@ const WorkoutSessionSchema = new mongoose.Schema({
     ref: 'Student', 
     required: true 
   },
+  instructorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Instructor',
+    required: true
+  },
   workoutPlanId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'WorkoutPlan', 
