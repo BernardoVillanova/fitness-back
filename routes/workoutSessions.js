@@ -3,7 +3,7 @@ const router = express.Router();
 const { authenticate } = require('../middleware/authMiddleware');
 const workoutSessionController = require('../controllers/workoutSessionController');
 
-// Rotas protegidas - requerem autenticação
+// Todas as rotas requerem autenticação
 router.use(authenticate);
 
 // Buscar treinos do aluno
@@ -32,5 +32,34 @@ router.get('/sessions/history', workoutSessionController.getSessionHistory);
 
 // Buscar todas as sessões para dashboard
 router.get('/sessions/all', workoutSessionController.getAllStudentSessions);
+
+// Buscar sessões de um aluno específico pelo studentId
+router.get('/sessions/student/:studentId', async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const WorkoutSession = require('../models/workoutSession');
+    
+    // Buscar todas as sessões do aluno
+    const sessions = await WorkoutSession.find({ studentId })
+      .sort({ startTime: -1 })
+      .populate('workoutPlanId')
+      .populate('studentId', 'name email personalInfo');
+    
+    res.json({
+      success: true,
+      total: sessions.length,
+      sessions: sessions
+    });
+  } catch (error) {
+    console.error('Erro ao buscar sessões do aluno:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Buscar sessões de todos os alunos de um instrutor (para dashboard do instrutor)
+router.get('/sessions/instructor/:instructorId?', workoutSessionController.getInstructorStudentSessions);
 
 module.exports = router;

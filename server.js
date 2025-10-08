@@ -40,7 +40,7 @@ app.use("/api/instructors", instructorRoutes);
 app.use("/api/gyms", gymRoutes);
 app.use("/api/workout", workoutRoutes);
 app.use("/api/students", studentsRoutes);
-app.use("/api/student", workoutSessionRoutes);
+app.use("/api/workout-sessions", workoutSessionRoutes);
 app.use("/api/student", progressRoutes);
 app.use("/api/equipments", equipmentRoutes);
 app.use("/api/exercises", exerciseRoutes);

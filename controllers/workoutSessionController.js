@@ -14,6 +14,15 @@ exports.getStudentWorkouts = async (req, res) => {
       return res.status(404).json({ message: 'Aluno não encontrado' });
     }
     
+    // Verificar se o aluno tem um instrutor vinculado
+    if (!student.instructorId) {
+      return res.json({
+        hasInstructor: false,
+        workouts: [],
+        message: 'Estudante não possui instrutor vinculado'
+      });
+    }
+    
     const studentId = student._id;
     
     // Buscar estatísticas de cada plano
@@ -43,7 +52,11 @@ exports.getStudentWorkouts = async (req, res) => {
       })
     );
     
-    res.json(workoutsWithStats);
+    res.json({
+      hasInstructor: true,
+      workouts: workoutsWithStats,
+      message: 'Treinos carregados com sucesso'
+    });
   } catch (error) {
     console.error('Erro ao buscar treinos:', error);
     res.status(500).json({ message: 'Erro ao buscar treinos do aluno' });
@@ -89,12 +102,28 @@ exports.startSession = async (req, res) => {
     const { workoutPlanId, divisionIndex } = req.body;
     
     // Buscar aluno pelo userId
-    const student = await Student.findOne({ userId });
+    const student = await Student.findOne({ userId }).populate('instructorId');
     if (!student) {
       return res.status(404).json({ message: 'Aluno não encontrado' });
     }
     
+    console.log('Student encontrado:', {
+      _id: student._id,
+      instructorId: student.instructorId,
+      hasInstructor: !!student.instructorId
+    });
+    
+    if (!student.instructorId) {
+      return res.status(400).json({ message: 'Aluno não possui instrutor vinculado' });
+    }
+    
     const studentId = student._id;
+    const instructorId = student.instructorId._id;
+    
+    console.log('IDs extraídos:', {
+      studentId: studentId.toString(),
+      instructorId: instructorId.toString()
+    });
     
     // Verificar se já existe sessão ativa
     const existingSession = await WorkoutSession.findOne({
@@ -175,6 +204,7 @@ exports.startSession = async (req, res) => {
     // Criar nova sessão
     const newSession = new WorkoutSession({
       studentId,
+      instructorId,
       workoutPlanId,
       workoutName: workoutPlan.name,
       divisionName: division.name,
@@ -189,13 +219,21 @@ exports.startSession = async (req, res) => {
       startTime: new Date()
     });
     
-    console.log('Tentando salvar sessão:', {
-      studentId,
-      workoutPlanId,
+    console.log('Dados antes de salvar:', {
+      studentId: newSession.studentId,
+      instructorId: newSession.instructorId,
+      workoutPlanId: newSession.workoutPlanId,
       exercisesCount: exercises.length
     });
     
     await newSession.save();
+    
+    console.log('Sessão salva - verificando campos:', {
+      _id: newSession._id,
+      studentId: newSession.studentId,
+      instructorId: newSession.instructorId,
+      hasInstructorId: !!newSession.instructorId
+    });
     
     console.log('Sessão criada com sucesso:', newSession._id);
     
@@ -571,6 +609,109 @@ exports.getAllStudentSessions = async (req, res) => {
   } catch (error) {
     console.error('💥 Erro ao buscar todas as sessões:', error);
     res.status(500).json({ message: 'Erro ao buscar sessões do estudante' });
+  }
+};
+
+// Buscar sessões de treino de todos os alunos de um instrutor (para dashboard do instrutor)
+exports.getInstructorStudentSessions = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { instructorId } = req.params;
+    
+    console.log('🏫 Buscando sessões dos alunos do instrutor - userId:', userId, 'instructorId:', instructorId);
+    
+    // Buscar instrutor pelo instructorId se fornecido, caso contrário pelo userId
+    const Instructor = require('../models/instructor');
+    let instructor;
+    
+    if (instructorId) {
+      // Se instructorId foi fornecido na URL, usar ele
+      instructor = await Instructor.findById(instructorId).populate({
+        path: 'students',
+        populate: {
+          path: 'userId',
+          select: 'name email cpf phone avatar'
+        }
+      });
+      console.log('🔍 Buscando instrutor por ID:', instructorId);
+    } else {
+      // Caso contrário, buscar pelo userId do token
+      instructor = await Instructor.findOne({ userId }).populate({
+        path: 'students',
+        populate: {
+          path: 'userId',
+          select: 'name email cpf phone avatar'
+        }
+      });
+      console.log('🔍 Buscando instrutor por userId:', userId);
+    }
+    
+    if (!instructor) {
+      console.log('❌ Instrutor não encontrado para:', instructorId || userId);
+      return res.status(404).json({ message: 'Instrutor não encontrado' });
+    }
+    
+    console.log('✅ Instrutor encontrado:', instructor._id, '- Nome:', instructor.name);
+    console.log('👥 Total de alunos vinculados:', instructor.students.length);
+    
+    if (!instructor.students.length) {
+      console.log('⚠️ Nenhum aluno vinculado a este instrutor');
+      return res.json({
+        success: true,
+        total: 0,
+        sessions: [],
+        students: []
+      });
+    }
+    
+    // Extrair IDs dos alunos do array students do instrutor
+    const studentIds = instructor.students.map(student => student._id);
+    console.log('� IDs dos alunos:', studentIds);
+    
+    // Buscar todas as sessões dos alunos vinculados
+    const sessions = await WorkoutSession.find({
+      studentId: { $in: studentIds }
+    })
+    .sort({ startTime: -1 })
+    .populate('workoutPlanId', 'name description')
+    .populate('instructorId', 'name email')
+    .populate('studentId', 'name email personalInfo userId')
+    .populate({
+      path: 'studentId',
+      populate: {
+        path: 'userId',
+        select: 'name email avatar'
+      }
+    });
+    
+    console.log(`📊 Total de sessões encontradas para ${studentIds.length} alunos:`, sessions.length);
+    
+    // Log detalhado das sessões encontradas
+    sessions.slice(0, 5).forEach((session, index) => {
+      console.log(`📋 Sessão ${index + 1}:`, {
+        id: session._id,
+        studentName: session.studentId?.userId?.name || session.studentId?.name,
+        workoutName: session.workoutName,
+        status: session.status,
+        startTime: session.startTime
+      });
+    });
+    
+    res.json({
+      success: true,
+      total: sessions.length,
+      sessions: sessions,
+      students: instructor.students,
+      instructor: {
+        id: instructor._id,
+        name: instructor.name,
+        email: instructor.email
+      }
+    });
+  } catch (error) {
+    console.error('💥 Erro ao buscar sessões dos alunos:', error);
+    console.error('📋 Stack trace:', error.stack);
+    res.status(500).json({ message: 'Erro ao buscar sessões dos alunos do instrutor', error: error.message });
   }
 };
 
