@@ -30,6 +30,17 @@ exports.createGym = async (req, res) => {
 
     console.log('Criando nova academia com dados validados:', JSON.stringify(gymData, null, 2));
 
+    // Processa equipamentos se fornecidos
+    let processedEquipments = [];
+    if (gymData.equipments && Array.isArray(gymData.equipments)) {
+      processedEquipments = gymData.equipments.map(eq => ({
+        name: eq.name || '',
+        quantity: Math.max(1, parseInt(eq.quantity) || 1),
+        condition: 'good', // Padrão
+        notes: eq.description || ''
+      }));
+    }
+
     // Criar a nova academia com os dados validados
     const newGym = new Gym({
       name: gymData.name.trim(),
@@ -42,7 +53,7 @@ exports.createGym = async (req, res) => {
       },
       phone: gymData.phone.trim(),
       email: (gymData.email || '').trim(),
-      equipments: [], // Inicialmente vazio
+      equipments: processedEquipments, // Adiciona os equipamentos processados
       instructors: [], // Inicialmente vazio
       students: [], // Inicialmente vazio
     });

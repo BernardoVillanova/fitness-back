@@ -7,7 +7,9 @@ const {
   updateEquipment,
   deleteEquipment,
   addMaintenance,
-  getEquipmentStats
+  getEquipmentStats,
+  searchEquipments,
+  getFeaturedEquipments
 } = require("../controllers/equipmentController");
 
 /**
@@ -96,6 +98,45 @@ router.post("/instructor/:instructorId", createEquipment);
  *         description: Erro no servidor.
  */
 router.get("/instructor/:instructorId", getEquipmentsByInstructor);
+
+/**
+ * @swagger
+ * /api/equipments/instructor/{instructorId}/search:
+ *   get:
+ *     summary: Busca equipamentos por termo.
+ *     description: Busca equipamentos do instrutor por nome, descrição ou categoria.
+ *     parameters:
+ *       - in: path
+ *         name: instructorId
+ *         required: true
+ *         type: string
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         type: string
+ *         description: Termo de busca
+ *     responses:
+ *       200:
+ *         description: Resultados da busca retornados com sucesso.
+ */
+router.get("/instructor/:instructorId/search", searchEquipments);
+
+/**
+ * @swagger
+ * /api/equipments/instructor/{instructorId}/featured:
+ *   get:
+ *     summary: Lista equipamentos em destaque.
+ *     description: Retorna equipamentos mais usados ou populares do instrutor.
+ *     parameters:
+ *       - in: path
+ *         name: instructorId
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Equipamentos em destaque retornados com sucesso.
+ */
+router.get("/instructor/:instructorId/featured", getFeaturedEquipments);
 
 /**
  * @swagger
