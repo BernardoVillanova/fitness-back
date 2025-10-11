@@ -418,3 +418,53 @@ exports.getEquipmentStats = async (req, res) => {
     res.status(500).json({ message: "Erro ao buscar estatísticas" });
   }
 };
+
+// Buscar equipamentos por termo
+exports.searchEquipments = async (req, res) => {
+  try {
+    const { instructorId } = req.params;
+    const { q } = req.query;
+    
+    if (!q || q.trim().length === 0) {
+      return res.status(400).json({ message: "Termo de busca é obrigatório" });
+    }
+    
+    const searchTerm = q.trim();
+    
+    // Busca equipamentos que correspondam ao termo
+    const equipments = await Equipment.find({
+      instructorId: instructorId,
+      $or: [
+        { name: { $regex: searchTerm, $options: 'i' } },
+        { description: { $regex: searchTerm, $options: 'i' } },
+        { category: { $regex: searchTerm, $options: 'i' } },
+        { muscleGroups: { $in: [new RegExp(searchTerm, 'i')] } }
+      ]
+    }).limit(20); // Limita a 20 resultados
+    
+    res.status(200).json(equipments);
+  } catch (error) {
+    console.error("Erro ao buscar equipamentos:", error);
+    res.status(500).json({ message: "Erro ao buscar equipamentos.", error: error.message });
+  }
+};
+
+// Obter equipamentos em destaque (mais usados)
+exports.getFeaturedEquipments = async (req, res) => {
+  try {
+    const { instructorId } = req.params;
+    
+    // Busca equipamentos mais usados ou recentemente criados
+    const featuredEquipments = await Equipment.find({
+      instructorId: instructorId,
+      isAvailable: true
+    })
+    .sort({ usageCount: -1, createdAt: -1 }) // Ordena por uso e depois por criação
+    .limit(8); // Máximo 8 equipamentos em destaque
+    
+    res.status(200).json(featuredEquipments);
+  } catch (error) {
+    console.error("Erro ao obter equipamentos em destaque:", error);
+    res.status(500).json({ message: "Erro ao obter equipamentos em destaque.", error: error.message });
+  }
+};
