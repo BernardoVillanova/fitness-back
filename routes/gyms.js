@@ -11,4 +11,9 @@ router.get('/', gymController.getAllGyms);
 router.get('/:gymId', gymController.getGymById);
 router.delete('/:gymId', gymController.deleteGym);
 
+// Rotas para gerenciamento de alunos
+router.post('/:gymId/students', express.json(), gymController.addStudentToGym);
+router.delete('/:gymId/students/:studentId', gymController.removeStudentFromGym);
+router.get('/:gymId/students', gymController.getGymStudents);
+
 module.exports = router;
