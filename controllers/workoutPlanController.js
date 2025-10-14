@@ -242,6 +242,29 @@ exports.getWorkoutPlansDetailed = async (req, res) => {
     
     console.log('✅ Planos encontrados:', workoutPlans.length);
     
+    const Exercise = require("../models/exercise");
+    const allExercises = await Exercise.find({ instructorId: instructorId }).lean();
+        
+    const exerciseMap = {};
+    allExercises.forEach(exercise => {
+      exerciseMap[exercise.name] = exercise;
+    });
+    
+    workoutPlans.forEach((plan, planIndex) => {
+      plan.divisions?.forEach((division, divIndex) => {
+        division.exercises?.forEach((exercise, exIndex) => {
+          
+          if (exerciseMap[exercise.name]) {
+            const fullExercise = exerciseMap[exercise.name];
+            
+            exercise.image = exercise.image || fullExercise.image;
+            exercise.description = exercise.description || fullExercise.description || fullExercise.howToPerform;
+            exercise.muscleGroups = exercise.muscleGroups || fullExercise.muscleGroups;
+          }
+        });
+      });
+    });
+    
     // Adicionar contagem de alunos e validar dados
     const plansWithStats = workoutPlans.map(plan => {
       // Garantir que assignedStudents seja um array
