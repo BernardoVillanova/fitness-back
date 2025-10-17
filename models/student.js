@@ -195,7 +195,7 @@ const StudentSchema = new mongoose.Schema({
     // Lesões e Limitações
     hasInjuries: { type: Boolean, default: false },
     injuries: [{
-      type: String, // "joelho", "ombro", "costas", etc.
+      type: { type: String }, // "joelho", "ombro", "costas", etc.
       description: String,
       date: Date,
       status: { type: String, enum: ["recuperada", "em_tratamento", "cronica"] },
