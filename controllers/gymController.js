@@ -71,10 +71,16 @@ exports.createGym = async (req, res) => {
     let processedEquipments = [];
     if (gymData.equipments && Array.isArray(gymData.equipments)) {
       processedEquipments = gymData.equipments.map(eq => ({
+        sourceId: eq.sourceId || eq._id || null,
         name: eq.name || '',
+        description: eq.description || '',
         quantity: Math.max(1, parseInt(eq.quantity) || 1),
+        category: eq.category || 'Geral',
+        muscleGroups: eq.muscleGroups || [],
+        image: eq.image || null,
+        isCustom: eq.isCustom || false,
         condition: 'good', // Padrão
-        notes: eq.description || ''
+        notes: eq.notes || ''
       }));
     }
 
@@ -182,10 +188,16 @@ exports.updateGym = async (req, res) => {
     // Processa equipamentos se fornecidos
     if (gymData.equipments && Array.isArray(gymData.equipments)) {
       updateData.equipments = gymData.equipments.map(eq => ({
+        sourceId: eq.sourceId || eq._id || null,
         name: eq.name || '',
+        description: eq.description || '',
         quantity: Math.max(1, parseInt(eq.quantity) || 1),
+        category: eq.category || 'Geral',
+        muscleGroups: eq.muscleGroups || [],
+        image: eq.image || null,
+        isCustom: eq.isCustom || false,
         condition: 'good',
-        notes: eq.description || ''
+        notes: eq.notes || ''
       }));
     }
 

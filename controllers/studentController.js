@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const Student = require("../models/student");
 
-// Helper function to normalize training experience
 const normalizeTrainingExperience = (experience) => {
   if (!experience) return null;
   const mapping = {
@@ -15,25 +14,45 @@ const normalizeTrainingExperience = (experience) => {
   return mapping[experience.toLowerCase()] || experience.toLowerCase();
 };
 
-// 1. Criar Aluno
+const safeParseJSON = (value, defaultValue = []) => {
+  if (!value) return defaultValue;
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try {
+      let cleanValue = value.trim();
+      
+      if ((cleanValue.startsWith('"') && cleanValue.endsWith('"')) ||
+          (cleanValue.startsWith("'") && cleanValue.endsWith("'"))) {
+        cleanValue = cleanValue.slice(1, -1);
+      }
+      
+      cleanValue = cleanValue.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\n/g, '');
+      
+      const parsed = JSON.parse(cleanValue);
+      return Array.isArray(parsed) ? parsed : defaultValue;
+    } catch (error) {
+      console.warn('Failed to parse JSON:', { original: value, error: error.message });
+      return defaultValue;
+    }
+  }
+  return defaultValue;
+};
+
 exports.createStudent = async (req, res) => {
   try {
     const { userId, name, email, cpf, phone, birthDate, personalInfo, healthRestrictions, goals } = req.body;
 
-    // Validar campos obrigatórios
     if (!userId || !name || !email || !cpf || !phone || !birthDate) {
       return res.status(400).json({ 
         message: "Campos obrigatórios faltando (userId, name, email, cpf, phone, birthDate)." 
       });
     }
 
-    // Verificar se o usuário já é aluno
     const existingStudent = await Student.findOne({ userId });
     if (existingStudent) {
       return res.status(400).json({ message: "Usuário já é aluno." });
     }
 
-    // Verificar se CPF ou email já existem
     const duplicateStudent = await Student.findOne({ 
       $or: [{ cpf: cpf.replace(/\D/g, '') }, { email }] 
     });
@@ -41,16 +60,13 @@ exports.createStudent = async (req, res) => {
       return res.status(400).json({ message: "CPF ou email já cadastrado." });
     }
 
-    // Criar novo aluno com a estrutura atualizada
     const newStudent = new Student({
       userId,
       name,
       email,
-      cpf: cpf.replace(/\D/g, ''), // Remove formatação
-      phone: phone.replace(/\D/g, ''), // Remove formatação
+      cpf: cpf.replace(/\D/g, ''),
+      phone: phone.replace(/\D/g, ''),
       birthDate,
-      
-      // instructorId e gymId serão atribuídos depois
       
       personalInfo: {
         currentWeight: personalInfo?.currentWeight,
@@ -81,7 +97,7 @@ exports.createStudent = async (req, res) => {
         },
         
         preferences: {
-          trainingDays: personalInfo?.preferences?.trainingDays || [],
+          trainingDays: safeParseJSON(personalInfo?.preferences?.trainingDays, []),
           preferredTimeStart: personalInfo?.preferences?.preferredTimeStart || '',
           preferredTimeEnd: personalInfo?.preferences?.preferredTimeEnd || '',
           preferredTrainingType: personalInfo?.preferences?.preferredTrainingType || '',
@@ -97,16 +113,16 @@ exports.createStudent = async (req, res) => {
       
       healthRestrictions: {
         hasChronicConditions: healthRestrictions?.hasChronicConditions || false,
-        chronicConditions: healthRestrictions?.chronicConditions || [],
+        chronicConditions: safeParseJSON(healthRestrictions?.chronicConditions, []),
         
         hasMedications: healthRestrictions?.hasMedications || false,
-        medications: healthRestrictions?.medications || [],
+        medications: safeParseJSON(healthRestrictions?.medications, []),
         
         hasInjuries: healthRestrictions?.hasInjuries || false,
-        injuries: healthRestrictions?.injuries || [],
+        injuries: safeParseJSON(healthRestrictions?.injuries, []),
         
         hasSurgeries: healthRestrictions?.hasSurgeries || false,
-        surgeries: healthRestrictions?.surgeries || [],
+        surgeries: safeParseJSON(healthRestrictions?.surgeries, []),
         
         medicalAuthorization: healthRestrictions?.medicalAuthorization || false,
         authorizationDate: healthRestrictions?.authorizationDate || null,
@@ -122,8 +138,8 @@ exports.createStudent = async (req, res) => {
         sleepQuality: healthRestrictions?.sleepQuality || 'boa',
         stressLevel: healthRestrictions?.stressLevel || 'baixo',
         
-        allergies: healthRestrictions?.allergies || [],
-        dietaryRestrictions: healthRestrictions?.dietaryRestrictions || [],
+        allergies: safeParseJSON(healthRestrictions?.allergies, []),
+        dietaryRestrictions: safeParseJSON(healthRestrictions?.dietaryRestrictions, []),
         generalNotes: healthRestrictions?.generalNotes || '',
         
         emergencyContact: {
@@ -148,8 +164,8 @@ exports.createStudent = async (req, res) => {
           targetBodyFatPercentage: goals?.bodyComposition?.targetBodyFatPercentage || null,
           targetMuscleMass: goals?.bodyComposition?.targetMuscleMass || null
         },
-        performance: goals?.performance || [],
-        personal: goals?.personal || [],
+        performance: safeParseJSON(goals?.performance, []),
+        personal: safeParseJSON(goals?.personal, []),
         monthlyWorkouts: goals?.monthlyWorkouts || null,
         monthlyCalories: goals?.monthlyCalories || null,
         monthlyHours: goals?.monthlyHours || null
@@ -309,7 +325,10 @@ exports.updateStudent = async (req, res) => {
         },
         preferences: {
           ...(student.personalInfo?.preferences?.toObject() || {}),
-          ...(req.body.personalInfo.preferences || {})
+          ...(req.body.personalInfo.preferences || {}),
+          trainingDays: req.body.personalInfo.preferences?.trainingDays ? 
+            safeParseJSON(req.body.personalInfo.preferences.trainingDays, []) : 
+            (student.personalInfo?.preferences?.trainingDays || [])
         },
         availability: {
           ...(student.personalInfo?.availability?.toObject() || {}),
@@ -321,9 +340,31 @@ exports.updateStudent = async (req, res) => {
     // Atualizar healthRestrictions (merge com dados existentes)
     if (req.body.healthRestrictions) {
       const student = await Student.findById(studentId);
+      
+      // Parse arrays que podem vir como strings JSON
+      const healthRestrictionsData = { ...req.body.healthRestrictions };
+      if (healthRestrictionsData.chronicConditions !== undefined) {
+        healthRestrictionsData.chronicConditions = safeParseJSON(healthRestrictionsData.chronicConditions, []);
+      }
+      if (healthRestrictionsData.medications !== undefined) {
+        healthRestrictionsData.medications = safeParseJSON(healthRestrictionsData.medications, []);
+      }
+      if (healthRestrictionsData.injuries !== undefined) {
+        healthRestrictionsData.injuries = safeParseJSON(healthRestrictionsData.injuries, []);
+      }
+      if (healthRestrictionsData.surgeries !== undefined) {
+        healthRestrictionsData.surgeries = safeParseJSON(healthRestrictionsData.surgeries, []);
+      }
+      if (healthRestrictionsData.allergies !== undefined) {
+        healthRestrictionsData.allergies = safeParseJSON(healthRestrictionsData.allergies, []);
+      }
+      if (healthRestrictionsData.dietaryRestrictions !== undefined) {
+        healthRestrictionsData.dietaryRestrictions = safeParseJSON(healthRestrictionsData.dietaryRestrictions, []);
+      }
+      
       updateData.healthRestrictions = {
         ...(student.healthRestrictions?.toObject() || {}),
-        ...req.body.healthRestrictions,
+        ...healthRestrictionsData,
         doctorContact: {
           ...(student.healthRestrictions?.doctorContact?.toObject() || {}),
           ...(req.body.healthRestrictions.doctorContact || {})
@@ -338,27 +379,37 @@ exports.updateStudent = async (req, res) => {
     // Atualizar goals (merge com dados existentes)
     if (req.body.goals) {
       const student = await Student.findById(studentId);
+      
+      // Parse arrays que podem vir como strings JSON
+      const goalsData = { ...req.body.goals };
+      if (goalsData.performance !== undefined) {
+        goalsData.performance = safeParseJSON(goalsData.performance, []);
+      }
+      if (goalsData.personal !== undefined) {
+        goalsData.personal = safeParseJSON(goalsData.personal, []);
+      }
+      
       updateData.goals = {
         ...(student.goals?.toObject() || {}),
-        ...req.body.goals,
+        ...goalsData,
         primary: {
           ...(student.goals?.primary?.toObject() || {}),
-          ...(req.body.goals.primary || {})
+          ...(goalsData.primary || {})
         },
         weight: {
           ...(student.goals?.weight?.toObject() || {}),
-          ...(req.body.goals.weight || {})
+          ...(goalsData.weight || {})
         },
         bodyComposition: {
           ...(student.goals?.bodyComposition?.toObject() || {}),
-          ...(req.body.goals.bodyComposition || {})
+          ...(goalsData.bodyComposition || {})
         }
       };
     }
 
     // Compatibilidade com estrutura antiga (preferences na raiz)
     if (req.body.preferences && !req.body.personalInfo) {
-      updateData['personalInfo.preferences.trainingDays'] = req.body.preferences.trainingDays || [];
+      updateData['personalInfo.preferences.trainingDays'] = safeParseJSON(req.body.preferences.trainingDays, []);
       updateData['personalInfo.preferences.preferredTime'] = req.body.preferences.preferredTime || "";
     }
 
