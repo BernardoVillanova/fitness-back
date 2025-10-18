@@ -67,7 +67,7 @@ exports.createStudent = async (req, res) => {
       cpf: cpf.replace(/\D/g, ''),
       phone: phone.replace(/\D/g, ''),
       birthDate,
-      3      
+      
       personalInfo: {
         currentWeight: personalInfo?.currentWeight,
         currentHeight: personalInfo?.currentHeight,

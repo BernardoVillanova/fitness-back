@@ -1,15 +1,20 @@
 const mongoose = require("mongoose");
 
 const EquipmentSchema = new mongoose.Schema({
+  sourceId: { type: String },                   // ID do equipamento original
   name: { type: String, required: true },       // Ex: "Leg Press"
+  description: { type: String },                // Descrição do equipamento
   quantity: { type: Number, default: 1 },       // Quantidade disponível
+  category: { type: String, default: 'Geral' }, // Categoria (musculacao, cardio, etc)
+  muscleGroups: [{ type: String }],             // Grupos musculares
+  image: { type: String },                      // Imagem do equipamento
+  isCustom: { type: Boolean, default: false },  // Se é equipamento customizado
   condition: { 
     type: String, 
     enum: ["excellent", "good", "needs repair"], 
     default: "good" 
   },
-  image: String,                                // (opcional) imagem do equipamento
-  notes: String                                  // (opcional) observações
+  notes: { type: String }                       // Observações
 });
 
 const GymSchema = new mongoose.Schema({
