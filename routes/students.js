@@ -7,6 +7,7 @@ const {
   getStudentByUserId,
   getStudentsByInstructorId,
   getStudentsWithoutInstructor,
+  publicSearchStudents,
   getStudents,
   updateStudent, 
   deleteStudent,
@@ -16,6 +17,39 @@ const {
   getStudentProfile,
   assignWorkoutPlanToStudent
 } = require("../controllers/studentController");
+
+// ========== ROTAS PÚBLICAS (SEM AUTENTICAÇÃO) ==========
+
+/**
+ * @swagger
+ * /api/students/public-search:
+ *   get:
+ *     summary: Busca pública de alunos sem instrutor (para cadastro de instrutor).
+ *     description: Permite buscar alunos disponíveis (sem instrutor atribuído) durante o cadastro de um novo instrutor.
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Termo de busca (nome, email ou CPF) - mínimo 2 caracteres
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Número máximo de resultados
+ *     responses:
+ *       200:
+ *         description: Lista de alunos encontrados.
+ *       400:
+ *         description: Termo de busca inválido.
+ *       500:
+ *         description: Erro ao buscar alunos.
+ */
+router.get("/public-search", publicSearchStudents);
+
+// ========== ROTAS PROTEGIDAS ==========
 
 /**
  * @swagger
