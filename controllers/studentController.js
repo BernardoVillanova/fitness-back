@@ -295,6 +295,63 @@ exports.getStudentsWithoutInstructor = async (req, res) => {
   }
 };
 
+exports.publicSearchStudents = async (req, res) => {
+  try {
+    const { search, limit = 10 } = req.query;
+
+    if (!search || search.length < 2) {
+      return res.status(400).json({ 
+        message: "O termo de busca deve ter pelo menos 2 caracteres." 
+      });
+    }
+
+    const searchRegex = new RegExp(search, 'i');
+
+    const students = await Student.find({
+      $and: [
+        {
+          $or: [
+            { instructorId: null },
+            { instructorId: { $exists: false } }
+          ]
+        },
+        {
+          $or: [
+            { name: searchRegex },
+            { email: searchRegex },
+            { cpf: search.replace(/\D/g, '') }
+          ]
+        }
+      ]
+    })
+      .populate("userId", "name email avatar")
+      .limit(parseInt(limit))
+      .select("_id name email cpf phone birthDate personalInfo.currentWeight personalInfo.currentHeight instructorId")
+      .lean();
+
+    const formattedStudents = students.map(student => ({
+      _id: student._id,
+      name: student.name,
+      email: student.email,
+      cpf: student.cpf,
+      phone: student.phone,
+      birthDate: student.birthDate,
+      currentWeight: student.personalInfo?.currentWeight,
+      currentHeight: student.personalInfo?.currentHeight,
+      avatar: student.userId?.avatar,
+      instructorId: student.instructorId
+    }));
+
+    res.status(200).json(formattedStudents);
+  } catch (error) {
+    console.error('❌ Erro na busca pública de alunos:', error);
+    res.status(500).json({ 
+      message: "Erro ao buscar alunos.", 
+      error: error.message 
+    });
+  }
+};
+
 // 5. Atualizar Aluno
 exports.updateStudent = async (req, res) => {
   try {
