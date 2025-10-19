@@ -201,7 +201,7 @@ exports.getStudentById = async (req, res) => {
     console.log('🔍 getStudentById chamado com ID:', studentId);
 
     const student = await Student.findById(studentId)
-      .populate("userId", "email name cpf phone birthDate")
+      .populate("userId", "email name cpf phone birthDate avatar")
       .populate("instructorId")
       .populate("currentWorkoutPlanId");
 
@@ -282,7 +282,7 @@ exports.getStudentsByInstructorId = async (req, res) => {
 exports.getStudentsWithoutInstructor = async (req, res) => {
   try {
     const students = await Student.find({ instructorId: null })
-      .populate("userId", "email name cpf phone birthDate")
+      .populate("userId", "email name cpf phone birthDate avatar")
       .select("-__v");
 
     if (!students.length) {
@@ -417,7 +417,7 @@ exports.updateStudent = async (req, res) => {
       studentId,
       updateData,
       { new: true, runValidators: true }
-    ).populate("userId", "email name cpf phone birthDate");
+    ).populate("userId", "email name cpf phone birthDate avatar");
 
     if (!updatedStudent) {
       return res.status(404).json({ message: "Aluno não encontrado." });
@@ -515,8 +515,14 @@ exports.getStudentByUserId = async (req, res) => {
     console.log('🔍 getStudentByUserId chamado com userId:', userId);
 
     const student = await Student.findOne({ userId })
-      .populate("userId", "email name cpf phone birthDate")
-      .populate("instructorId")
+      .populate("userId", "email name cpf phone birthDate avatar")
+      .populate({
+        path: "instructorId",
+        populate: {
+          path: "userId",
+          select: "name email avatar"
+        }
+      })
       .populate("currentWorkoutPlanId");
 
     console.log('📊 Resultado da busca por userId:', student ? 'Encontrado' : 'Não encontrado');
@@ -527,6 +533,21 @@ exports.getStudentByUserId = async (req, res) => {
     }
 
     console.log('✅ Aluno encontrado:', student.name, '- InstructorId:', student.instructorId?._id || student.instructorId);
+    
+    // Debug: verificar se o populate aninhado funcionou
+    if (student.instructorId) {
+      console.log('🔍 Debug instructorId:', {
+        id: student.instructorId._id,
+        name: student.instructorId.name,
+        hasUserId: !!student.instructorId.userId,
+        userIdType: typeof student.instructorId.userId,
+        userIdIsObject: typeof student.instructorId.userId === 'object',
+        userIdKeys: student.instructorId.userId && typeof student.instructorId.userId === 'object' 
+          ? Object.keys(student.instructorId.userId) 
+          : 'N/A'
+      });
+    }
+    
     res.status(200).json(student);
   } catch (error) {
     console.error('💥 Erro em getStudentByUserId:', error);
