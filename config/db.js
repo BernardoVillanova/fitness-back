@@ -2,15 +2,24 @@ const mongoose = require("mongoose");
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI, {
+    // Usar MONGODB_URI (Docker) ou MONGO_URI (desenvolvimento) como fallback
+    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
+    
+    if (!mongoUri) {
+      throw new Error("MongoDB URI não está definida. Configure MONGODB_URI ou MONGO_URI no arquivo .env");
+    }
+    
+    console.log(`🔌 Tentando conectar ao MongoDB...`);
+    
+    await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 5000,
-      tls: true,
+      tls: mongoUri.includes('mongodb+srv'), // TLS apenas para MongoDB Atlas
       retryWrites: true,
       w: "majority"
     });
-    console.log("Conexão com o MongoDB estabelecida com sucesso!");
+    console.log("✅ Conexão com o MongoDB estabelecida com sucesso!");
   } catch (error) {
-    console.error("Erro ao conectar ao MongoDB:", error.message);
+    console.error("❌ Erro ao conectar ao MongoDB:", error.message);
     process.exit(1);
   }
 };

@@ -114,8 +114,7 @@ const InstructorSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Índices para performance
-InstructorSchema.index({ userId: 1 });
+// Índices para performance (userId já tem unique: true, não precisa de index adicional)
 InstructorSchema.index({ cref: 1 }, { sparse: true });
 InstructorSchema.index({ specialties: 1 });
 InstructorSchema.index({ isActive: 1 });
