@@ -21,19 +21,3 @@ jobs:
       run: |
         docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/fitness-backend .
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/fitness-backend
-    
-    - name: Deploy to Server
-      uses: appleboy/ssh-action@v0.1.5
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        password: ${{ secrets.PASSWORD }}
-        script: |
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/fitness-backend
-          docker stop fitness-backend || true
-          docker rm fitness-backend || true
-          docker run -d --name fitness-backend -p 3000:3000 \
-            -e MONGODB_URI="${{ secrets.MONGODB_URI }}" \
-            -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-            --restart always \
-            ${{ secrets.DOCKERHUB_USERNAME }}/fitness-backend
