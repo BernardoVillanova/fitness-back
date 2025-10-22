@@ -23,12 +23,19 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Configurar CORS com variável de ambiente
+const corsOrigins = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',')
+  : ['http://localhost:8080', 'http://localhost:8081', 'http://localhost'];
+
 app.use(
   cors({
-    origin: ['http://localhost:8080', 'http://localhost:8081'],
+    origin: corsOrigins,
     credentials: true
   })
 );
+
+console.log('🌐 CORS configurado para:', corsOrigins);
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
