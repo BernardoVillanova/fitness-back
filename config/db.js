@@ -2,8 +2,8 @@ const mongoose = require("mongoose");
 
 const connectDB = async () => {
   try {
-    // Usar MONGODB_URI (Docker) ou MONGO_URI (desenvolvimento) como fallback
-    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
+    // Em produção, priorizar MONGO_URI (Atlas), em desenvolvimento/Docker usar MONGODB_URI
+    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
     
     if (!mongoUri) {
       throw new Error("MongoDB URI não está definida. Configure MONGODB_URI ou MONGO_URI no arquivo .env");
