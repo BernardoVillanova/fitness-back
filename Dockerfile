@@ -11,7 +11,6 @@ COPY . .
 RUN mkdir -p uploads/avatars uploads/equipments uploads/exercises uploads/gyms && \
     chmod -R 755 uploads
 
-# Variáveis de ambiente padrão (serão sobrescritas pelo docker-compose)
 ENV NODE_ENV=production
 
 EXPOSE 3000
