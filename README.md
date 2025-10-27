@@ -31,12 +31,6 @@ docker build -t fitness-back .
 docker run -p 3000:3000 fitness-back
 ```
 
-**Executar o projeto completo (frontend + backend + banco):**
-```bash
-# Na raiz do projeto (pasta pai)
-docker-compose up --build
-```
-
 A API estará disponível em `http://localhost:3000`
 
 ## ⚙️ Configuração de Variáveis de Ambiente
@@ -63,20 +57,12 @@ MONGODB_URI=mongodb://admin:123456@localhost:27017/fitness?authSource=admin
 CORS_ORIGIN=http://localhost:8080,http://localhost:8081,http://localhost
 ```
 
-**Docker (usando docker-compose):**
-```bash
-MONGODB_URI=mongodb://admin:123456@mongodb:27017/fitness?authSource=admin
-CORS_ORIGIN=http://localhost,http://localhost:80,http://frontend
-```
-
 **Produção:**
 ```bash
 MONGODB_URI=mongodb+srv://usuario:senha@cluster.mongodb.net/fitness
 CORS_ORIGIN=https://seu-dominio.com
 JWT_SECRET=chave_super_secreta_e_longa_aqui
 ```
-
-⚠️ **Importante:** Após alterar o `.env`, reinicie o servidor.
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -408,6 +394,7 @@ Receba a confirmação da atribuição:
 
 #### 5. **Considerações Finais**
 
-Este backend foi projetado para ser modular, escalável e fácil de manter. Ele fornece uma base sólida para o desenvolvimento de funcionalidades adicionais, como gráficos de progresso, relatórios personalizados e integração com o frontend. 
+Este backend foi projetado para ser modular, escalável e fácil de manter. Ele fornece uma base sólida para o desenvolvimento de funcionalidades adicionais, como gráficos de progresso, relatórios personalizados e integração com o frontend.
 
-Se precisar de mais informações ou ajustes, consulte a documentação Swagger ou entre em contato com o desenvolvedor responsáve
+- Bernardo Villanova de Santana
+- Rodrigo Carlos dos Santos Neto
