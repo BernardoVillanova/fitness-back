@@ -256,6 +256,10 @@ exports.getStudentsByInstructorId = async (req, res) => {
       .populate("userId", "email name cpf phone birthDate avatar")
       .populate("instructorId", "name email")
       .populate("currentWorkoutPlanId", "name description")
+      .populate({
+        path: "workoutPlans",
+        select: "name description instructorId createdAt"
+      })
       .select("-__v");
     
     console.log('📊 Dados completos de', students.length, 'alunos carregados');
@@ -263,6 +267,10 @@ exports.getStudentsByInstructorId = async (req, res) => {
     // Adicionar informações extras de cada aluno
     const enrichedStudents = students.map(student => {
       const studentObj = student.toObject();
+      
+      // Log para debug
+      console.log(`📋 Aluno ${student.userId?.name}: workoutPlans =`, studentObj.workoutPlans?.length || 0);
+      
       return {
         ...studentObj,
         name: student.userId?.name || 'Nome não disponível',
@@ -516,7 +524,13 @@ exports.getStudentByUserId = async (req, res) => {
 
     const student = await Student.findOne({ userId })
       .populate("userId", "email name cpf phone birthDate")
-      .populate("instructorId")
+      .populate({
+        path: "instructorId",
+        populate: {
+          path: "userId",
+          select: "name email avatar"
+        }
+      })
       .populate("currentWorkoutPlanId");
 
     console.log('📊 Resultado da busca por userId:', student ? 'Encontrado' : 'Não encontrado');
