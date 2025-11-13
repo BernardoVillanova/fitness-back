@@ -1,53 +1,252 @@
-# fitness-back
+# 🏋️ Fitness Back - Backend API
 
-## Documentação do Projeto
+API RESTful para gerenciamento de academias, fichas de treino, exercícios e acompanhamento de alunos.
 
-Este é o backend da aplicação **Fitness TCC**, uma API RESTful desenvolvida para gerenciar fichas de treino, alunos e instrutores. O objetivo principal é permitir que instrutores criem e gerenciem fichas de treino para seus alunos, enquanto os alunos possam visualizar suas fichas e acompanhar seu progresso.
+## 🚀 Como Rodar
 
----
+### Opção 1: Clone e Instalação Local
 
-### **1. Estrutura do Projeto**
+```bash
+# Clone o repositório
+git clone <url-do-repositorio>
+cd fitness-back
 
-A estrutura do projeto foi organizada de forma modular para facilitar a manutenção e escalabilidade. Abaixo está a descrição de cada pasta e arquivo:
+# Instale as dependências
+npm install
 
-![alt text](image.png)
+# Configure as variáveis de ambiente (veja seção abaixo)
+cp .env.example .env
 
+# Execute o servidor
+npm run dev
+```
 
----
+A API estará disponível em `http://localhost:3000`
 
-### **2. Resumo das Funcionalidades**
+### Opção 2: Docker
 
-#### **2.1. Autenticação**
-- **Registro**: Usuários podem se registrar como **aluno** ou **instrutor**.
-- **Login**: Após o login, um token JWT é gerado para autenticação em rotas protegidas.
-- **Rotas**: 
-  - `POST /api/auth/register`: Registro de novos usuários.
-  - `POST /api/auth/login`: Login de usuários existentes.
+**Executar apenas o backend:**
+```bash
+docker build -t fitness-back .
+docker run -p 3000:3000 fitness-back
+```
 
-#### **2.2. Fichas de Treino**
-- **Criação**: Instrutores podem criar fichas de treino independentemente, sem associá-las diretamente a um aluno.
-- **Divisões de Treino**: Cada ficha pode ter múltiplas divisões de treino (ex.: Treino A, Treino B).
-- **Exercícios**: Cada divisão de treino contém exercícios detalhados (nome, descrição, imagem, séries, repetições, carga ideal).
-- **Rotas**:
-  - `POST /api/workout-plans`: Criação de uma nova ficha de treino.
-  - `GET /api/workout-plans`: Listagem de todas as fichas de treino disponíveis.
+A API estará disponível em `http://localhost:3000`
 
-#### **2.3. Alunos**
-- **Progresso**: Alunos podem ter informações de progresso (peso, altura, medidas corporais) registradas ao longo do tempo.
-- **Ficha de Treino**: Uma ficha de treino pode ser atribuída a um aluno específico.
-- **Rotas**:
-  - `PUT /api/students/:studentId/assign-workout-plan`: Atribui uma ficha de treino a um aluno.
+## ⚙️ Configuração de Variáveis de Ambiente
 
-#### **2.4. Instrutores**
-- **Gerenciamento**: Instrutores podem criar fichas de treino e atribuí-las a alunos.
-- **Especializações**: Informações adicionais sobre certificações e especializações podem ser armazenadas.
+Crie um arquivo `.env` na raiz do projeto `fitness-back/`:
 
----
+```bash
+MONGODB_URI=mongodb://user:123456@localhost:27017/fitness?authSource=admin
 
-### **3. Guia de Uso**
+JWT_SECRET=sua_chave_secreta_muito_segura
 
-#### **3.1. Configuração Inicial**
-1. **Instalação de Dependências**:
+PORT=3000
+
+API_BASE_URL=http://localhost:3000
+
+CORS_ORIGIN=http://localhost:8080,http://localhost:8081,http://localhost
+```
+
+### Diferentes ambientes:
+
+**Desenvolvimento Local:**
+```bash
+MONGODB_URI=mongodb://admin:123456@localhost:27017/fitness?authSource=admin
+CORS_ORIGIN=http://localhost:8080,http://localhost:8081,http://localhost
+```
+
+**Produção:**
+```bash
+MONGODB_URI=mongodb+srv://usuario:senha@cluster.mongodb.net/fitness
+CORS_ORIGIN=https://seu-dominio.com
+JWT_SECRET=chave_super_secreta_e_longa_aqui
+```
+
+## 🛠️ Tecnologias Utilizadas
+
+- **Node.js** - Ambiente de execução JavaScript
+- **Express** - Framework web minimalista
+- **MongoDB** - Banco de dados NoSQL
+- **Mongoose** - ODM para MongoDB
+- **JWT (jsonwebtoken)** - Autenticação baseada em tokens
+- **Bcrypt** - Hash de senhas
+- **Multer** - Upload de arquivos (imagens)
+- **Swagger** - Documentação automática da API
+- **CORS** - Controle de acesso entre origens
+
+## 📦 Estrutura do Projeto
+
+```
+fitness-back/
+├── config/
+│   └── db.js              # Configuração do MongoDB
+├── controllers/           # Lógica de negócio
+│   ├── equipmentController.js
+│   ├── exerciseController.js
+│   ├── gymController.js
+│   ├── instructorController.js
+│   ├── progressController.js
+│   ├── studentController.js
+│   ├── workoutPlanController.js
+│   └── workoutSessionController.js
+├── middleware/            # Middlewares
+│   ├── authMiddleware.js  # Autenticação JWT
+│   └── uploadMiddleware.js # Upload de imagens
+├── models/                # Modelos do banco de dados
+│   ├── equipment.js
+│   ├── exercise.js
+│   ├── gym.js
+│   ├── instructor.js
+│   ├── student.js
+│   ├── user.js
+│   ├── workoutPlan.js
+│   └── workoutSession.js
+├── routes/                # Rotas da API
+│   ├── auth.js
+│   ├── equipments.js
+│   ├── exercises.js
+│   ├── gyms.js
+│   ├── instructors.js
+│   ├── progress.js
+│   ├── students.js
+│   ├── workoutPlans.js
+│   └── workoutSessions.js
+├── uploads/               # Arquivos enviados
+│   ├── avatars/
+│   ├── equipments/
+│   ├── exercises/
+│   └── gyms/
+├── docs/
+│   └── swagger.js         # Configuração do Swagger
+├── .env                   # Variáveis de ambiente
+├── server.js              # Arquivo principal
+└── package.json           # Dependências e scripts
+```
+
+## 🎯 Principais Funcionalidades
+
+### 1. Autenticação
+- Registro de usuários (instrutor/aluno)
+- Login com JWT
+- Rotas protegidas por autenticação
+
+### 2. Gestão de Academias
+- CRUD completo de academias
+- Upload de logo
+- Informações de contato e endereço
+
+### 3. Gestão de Instrutores
+- Cadastro com especializações
+- Vinculação a academias
+- Gerenciamento de alunos
+
+### 4. Gestão de Alunos
+- Perfil completo do aluno
+- Histórico de progresso (peso, altura, medidas)
+- Atribuição de fichas de treino
+
+### 5. Exercícios e Equipamentos
+- Catálogo de exercícios com imagens
+- Categorias e grupos musculares
+- Gestão de equipamentos
+
+### 6. Fichas de Treino
+- Criação independente de fichas
+- Divisões de treino (A, B, C, etc.)
+- Exercícios detalhados (séries, repetições, carga)
+- Atribuição a alunos específicos
+
+### 7. Sessões de Treino
+- Registro de treinos executados
+- Acompanhamento de progresso
+- Feedback do aluno
+
+## 📚 Documentação da API
+
+Após iniciar o servidor, acesse a documentação Swagger em:
+
+```
+http://localhost:3000/api-docs
+```
+
+## 📝 Scripts Disponíveis
+
+```bash
+npm run dev                  # Inicia servidor de desenvolvimento
+node server.js               # Inicia servidor
+node sync-workout-plans.js   # Script de sincronização de fichas
+node check-student-data.js   # Verifica dados de alunos
+```
+
+## 🔐 Autenticação
+
+A API utiliza JWT (JSON Web Tokens) para autenticação. Após o login, inclua o token no header das requisições:
+
+```bash
+Authorization: Bearer seu_token_aqui
+```
+
+## 📊 Modelos de Dados
+
+### User (Usuário)
+```javascript
+{
+  username: String,
+  email: String,
+  password: String (hash),
+  role: 'student' | 'instructor',
+  profileId: ObjectId
+}
+```
+
+### WorkoutPlan (Ficha de Treino)
+```javascript
+{
+  name: String,
+  description: String,
+  instructorId: ObjectId,
+  divisions: [{
+    name: String,
+    exercises: [{
+      exerciseId: ObjectId,
+      sets: Number,
+      reps: String,
+      weight: Number,
+      rest: String,
+      notes: String
+    }]
+  }]
+}
+```
+
+### Student (Aluno)
+```javascript
+{
+  userId: ObjectId,
+  fullName: String,
+  dateOfBirth: Date,
+  phone: String,
+  currentWorkoutPlan: ObjectId,
+  gymId: ObjectId,
+  instructorId: ObjectId,
+  progressHistory: [{
+    date: Date,
+    weight: Number,
+    height: Number,
+    bodyMeasurements: Object
+  }]
+}
+```
+
+## 🤝 Contribuindo
+
+1. Fork o projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/MinhaFeature`)
+3. Commit suas mudanças (`git commit -m 'Adiciona MinhaFeature'`)
+4. Push para a branch (`git push origin feature/MinhaFeature`)
+5. Abra um Pull Request
    Execute o comando abaixo para instalar todas as dependências necessárias:
    ```bash
    npm install
@@ -195,6 +394,7 @@ Receba a confirmação da atribuição:
 
 #### 5. **Considerações Finais**
 
-Este backend foi projetado para ser modular, escalável e fácil de manter. Ele fornece uma base sólida para o desenvolvimento de funcionalidades adicionais, como gráficos de progresso, relatórios personalizados e integração com o frontend. 
+Este backend foi projetado para ser modular, escalável e fácil de manter. Ele fornece uma base sólida para o desenvolvimento de funcionalidades adicionais, como gráficos de progresso, relatórios personalizados e integração com o frontend.
 
-Se precisar de mais informações ou ajustes, consulte a documentação Swagger ou entre em contato com o desenvolvedor responsáve
+- Bernardo Villanova de Santana
+- Rodrigo Carlos dos Santos Neto

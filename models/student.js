@@ -315,9 +315,8 @@ const StudentSchema = new mongoose.Schema({
   timestamps: true // Adiciona createdAt e updatedAt automaticamente
 });
 
-// Índices para otimizar consultas
+// Índices para otimizar consultas (cpf e userId já têm unique: true, não precisam de index adicional)
 StudentSchema.index({ email: 1 });
-StudentSchema.index({ cpf: 1 });
 StudentSchema.index({ instructorId: 1 });
 StudentSchema.index({ gymId: 1 });
 StudentSchema.index({ status: 1 });
