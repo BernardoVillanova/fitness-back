@@ -201,7 +201,7 @@ exports.getStudentById = async (req, res) => {
     console.log('🔍 getStudentById chamado com ID:', studentId);
 
     const student = await Student.findById(studentId)
-      .populate("userId", "email name cpf phone birthDate")
+      .populate("userId", "email name cpf phone birthDate avatar")
       .populate("instructorId")
       .populate("currentWorkoutPlanId");
 
@@ -290,7 +290,7 @@ exports.getStudentsByInstructorId = async (req, res) => {
 exports.getStudentsWithoutInstructor = async (req, res) => {
   try {
     const students = await Student.find({ instructorId: null })
-      .populate("userId", "email name cpf phone birthDate")
+      .populate("userId", "email name cpf phone birthDate avatar")
       .select("-__v");
 
     if (!students.length) {
@@ -300,6 +300,63 @@ exports.getStudentsWithoutInstructor = async (req, res) => {
     res.status(200).json(students);
   } catch (error) {
     res.status(500).json({ message: "Erro ao buscar alunos.", error: error.message });
+  }
+};
+
+exports.publicSearchStudents = async (req, res) => {
+  try {
+    const { search, limit = 10 } = req.query;
+
+    if (!search || search.length < 2) {
+      return res.status(400).json({ 
+        message: "O termo de busca deve ter pelo menos 2 caracteres." 
+      });
+    }
+
+    const searchRegex = new RegExp(search, 'i');
+
+    const students = await Student.find({
+      $and: [
+        {
+          $or: [
+            { instructorId: null },
+            { instructorId: { $exists: false } }
+          ]
+        },
+        {
+          $or: [
+            { name: searchRegex },
+            { email: searchRegex },
+            { cpf: search.replace(/\D/g, '') }
+          ]
+        }
+      ]
+    })
+      .populate("userId", "name email avatar")
+      .limit(parseInt(limit))
+      .select("_id name email cpf phone birthDate personalInfo.currentWeight personalInfo.currentHeight instructorId")
+      .lean();
+
+    const formattedStudents = students.map(student => ({
+      _id: student._id,
+      name: student.name,
+      email: student.email,
+      cpf: student.cpf,
+      phone: student.phone,
+      birthDate: student.birthDate,
+      currentWeight: student.personalInfo?.currentWeight,
+      currentHeight: student.personalInfo?.currentHeight,
+      avatar: student.userId?.avatar,
+      instructorId: student.instructorId
+    }));
+
+    res.status(200).json(formattedStudents);
+  } catch (error) {
+    console.error('❌ Erro na busca pública de alunos:', error);
+    res.status(500).json({ 
+      message: "Erro ao buscar alunos.", 
+      error: error.message 
+    });
   }
 };
 
@@ -425,7 +482,7 @@ exports.updateStudent = async (req, res) => {
       studentId,
       updateData,
       { new: true, runValidators: true }
-    ).populate("userId", "email name cpf phone birthDate");
+    ).populate("userId", "email name cpf phone birthDate avatar");
 
     if (!updatedStudent) {
       return res.status(404).json({ message: "Aluno não encontrado." });
@@ -541,6 +598,21 @@ exports.getStudentByUserId = async (req, res) => {
     }
 
     console.log('✅ Aluno encontrado:', student.name, '- InstructorId:', student.instructorId?._id || student.instructorId);
+    
+    // Debug: verificar se o populate aninhado funcionou
+    if (student.instructorId) {
+      console.log('🔍 Debug instructorId:', {
+        id: student.instructorId._id,
+        name: student.instructorId.name,
+        hasUserId: !!student.instructorId.userId,
+        userIdType: typeof student.instructorId.userId,
+        userIdIsObject: typeof student.instructorId.userId === 'object',
+        userIdKeys: student.instructorId.userId && typeof student.instructorId.userId === 'object' 
+          ? Object.keys(student.instructorId.userId) 
+          : 'N/A'
+      });
+    }
+    
     res.status(200).json(student);
   } catch (error) {
     console.error('💥 Erro em getStudentByUserId:', error);
